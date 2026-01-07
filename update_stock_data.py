@@ -58,9 +58,9 @@ def update_stock_prices(session, stock):
     print(f"   📅 Fetching: {start_date} to {end_date}")
     
     try:
-        # Download new data
+        # Download new data - ⚠️ FORZA DATI NON ADJUSTED!
         ticker_obj = yf.Ticker(stock.ticker)
-        hist = ticker_obj.history(start=start_date, end=end_date)
+        hist = ticker_obj.history(start=start_date, end=end_date, auto_adjust=False, back_adjust=False)
         
         if hist.empty:
             print(f"   ℹ️  No new data available")
