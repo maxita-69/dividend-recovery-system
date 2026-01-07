@@ -110,11 +110,13 @@ def find_recovery(df, start_date, target_price, max_days=30):
     # Restituisci l'ultimo giorno disponibile
     last_date = future_data.index[-1]
     last_price = future_data.iloc[-1]['close']
-    actual_days_checked = len(future_data) - 1  # -1 perché giorno 0 è start_date
+    
+    # Calcola giorni trascorsi da start_date all'ultimo giorno disponibile
+    days_passed = (last_date - start_date).days
     
     return {
         'recovery_date': last_date,
-        'recovery_days': actual_days_checked,
+        'recovery_days': days_passed,  # Giorni REALI trascorsi
         'recovery_price': last_price,
         'recovered': False
     }

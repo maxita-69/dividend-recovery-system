@@ -3,15 +3,13 @@ Download FTSE MIB 40 tickers safely
 Compatible with your dividend_recovery.db structure
 """
 
-# Opzionale: randomizza l'ordine per evitare pattern riconoscibili
 import random
-random.shuffle(MIB30_TICKERS)
-
 import sys
 import time
 import logging
 from pathlib import Path
 from datetime import datetime, timedelta
+import pandas as pd
 
 import yfinance as yf
 from sqlalchemy import create_engine
@@ -50,6 +48,9 @@ MIB30_TICKERS = [
     'SUS.MI', 'TITB.MI', 'TRN.MI', 'URG.MI', 'VLG.MI', 'YDR.MI',
     'ZC.MI', 'AGL.MI', 'BA.MI', 'BRC.MI'
 ]
+
+# ✅ Randomizza DOPO la definizione
+random.shuffle(MIB30_TICKERS)
 
 # =================================================================
 # FUNZIONI

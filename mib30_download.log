@@ -1,0 +1,141 @@
+2026-01-07 18:45:09,340 | INFO     | ============================================================
+2026-01-07 18:45:09,341 | INFO     | DOWNLOAD FTSE MIB 40 - SAFE MODE (3s delay)
+2026-01-07 18:45:09,341 | INFO     | Ticker: 40
+2026-01-07 18:45:09,358 | INFO     | ============================================================
+2026-01-07 18:45:09,397 | INFO     | 
+--- [1/40] TRN.MI ---
+2026-01-07 18:45:09,398 | INFO     | [TRN.MI] Tentativo 1/3
+2026-01-07 18:45:11,945 | INFO     | Creato nuovo stock: TRN.MI
+2026-01-07 18:45:13,117 | INFO     | [TRN.MI] Salvati 1529 prezzi, 12 dividendi
+2026-01-07 18:45:13,118 | INFO     | Attesa 3 secondi prima del prossimo...
+2026-01-07 18:45:16,118 | INFO     | 
+--- [2/40] LDO.MI ---
+2026-01-07 18:45:16,119 | INFO     | [LDO.MI] Tentativo 1/3
+2026-01-07 18:45:17,185 | INFO     | Creato nuovo stock: LDO.MI
+2026-01-07 18:45:18,167 | INFO     | [LDO.MI] Salvati 1529 prezzi, 5 dividendi
+2026-01-07 18:45:18,167 | INFO     | Attesa 3 secondi prima del prossimo...
+2026-01-07 18:45:21,167 | INFO     | 
+--- [3/40] AGL.MI ---
+2026-01-07 18:45:21,168 | INFO     | [AGL.MI] Tentativo 1/3
+2026-01-07 18:45:22,197 | ERROR    | $AGL.MI: possibly delisted; no timezone found
+2026-01-07 18:45:22,198 | WARNING  | [AGL.MI] Dati storici vuoti
+2026-01-07 18:45:22,198 | INFO     | Attesa 3 secondi prima del prossimo...
+2026-01-07 18:45:25,198 | INFO     | 
+--- [4/40] MONC.MI ---
+2026-01-07 18:45:25,199 | INFO     | [MONC.MI] Tentativo 1/3
+2026-01-07 18:45:26,200 | INFO     | Creato nuovo stock: MONC.MI
+2026-01-07 18:45:27,173 | INFO     | [MONC.MI] Salvati 1529 prezzi, 5 dividendi
+2026-01-07 18:45:27,173 | INFO     | Attesa 3 secondi prima del prossimo...
+2026-01-07 18:45:30,174 | INFO     | 
+--- [5/40] ISP.MI ---
+2026-01-07 18:45:30,174 | INFO     | [ISP.MI] Tentativo 1/3
+2026-01-07 18:45:31,385 | INFO     | Creato nuovo stock: ISP.MI
+2026-01-07 18:45:32,333 | INFO     | [ISP.MI] Salvati 1529 prezzi, 11 dividendi
+2026-01-07 18:45:32,333 | INFO     | Attesa 3 secondi prima del prossimo...
+2026-01-07 18:45:35,334 | INFO     | 
+--- [6/40] MS.MI ---
+2026-01-07 18:45:35,334 | INFO     | [MS.MI] Tentativo 1/3
+2026-01-07 18:45:36,066 | INFO     | Creato nuovo stock: MS.MI
+2026-01-07 18:45:36,280 | INFO     | [MS.MI] Salvati 362 prezzi, 1 dividendi
+2026-01-07 18:45:36,281 | INFO     | Attesa 3 secondi prima del prossimo...
+2026-01-07 18:45:39,282 | INFO     | 
+--- [7/40] TIT.MI ---
+2026-01-07 18:45:39,284 | INFO     | [TIT.MI] Tentativo 1/3
+2026-01-07 18:45:40,537 | INFO     | Creato nuovo stock: TIT.MI
+2026-01-07 18:45:41,421 | INFO     | [TIT.MI] Salvati 1529 prezzi, 2 dividendi
+2026-01-07 18:45:41,421 | INFO     | Attesa 3 secondi prima del prossimo...
+2026-01-07 18:45:44,422 | INFO     | 
+--- [8/40] ENEL.MI ---
+2026-01-07 18:45:44,423 | INFO     | [ENEL.MI] Tentativo 1/3
+2026-01-07 18:45:46,325 | INFO     | [ENEL.MI] Salvati 0 prezzi, 0 dividendi
+2026-01-07 18:45:46,325 | INFO     | Attesa 3 secondi prima del prossimo...
+2026-01-07 18:45:49,326 | INFO     | 
+--- [9/40] BZU.MI ---
+2026-01-07 18:45:49,326 | INFO     | [BZU.MI] Tentativo 1/3
+2026-01-07 18:45:50,481 | INFO     | Creato nuovo stock: BZU.MI
+2026-01-07 18:45:51,556 | INFO     | [BZU.MI] Salvati 1529 prezzi, 7 dividendi
+2026-01-07 18:45:51,556 | INFO     | Attesa 3 secondi prima del prossimo...
+2026-01-07 18:45:54,558 | INFO     | 
+--- [10/40] AZM.MI ---
+2026-01-07 18:45:54,558 | INFO     | [AZM.MI] Tentativo 1/3
+2026-01-07 18:45:55,664 | INFO     | Creato nuovo stock: AZM.MI
+2026-01-07 18:45:56,882 | INFO     | [AZM.MI] Salvati 1529 prezzi, 6 dividendi
+2026-01-07 18:45:56,883 | INFO     | Attesa 3 secondi prima del prossimo...
+2026-01-07 18:45:59,883 | INFO     | 
+--- [11/40] STM.MI ---
+2026-01-07 18:45:59,885 | INFO     | [STM.MI] Tentativo 1/3
+2026-01-07 18:46:00,854 | ERROR    | $STM.MI: possibly delisted; no timezone found
+2026-01-07 18:46:00,855 | WARNING  | [STM.MI] Dati storici vuoti
+2026-01-07 18:46:00,856 | INFO     | Attesa 3 secondi prima del prossimo...
+2026-01-07 18:46:03,857 | INFO     | 
+--- [12/40] A2A.MI ---
+2026-01-07 18:46:03,858 | INFO     | [A2A.MI] Tentativo 1/3
+2026-01-07 18:46:05,045 | INFO     | Creato nuovo stock: A2A.MI
+2026-01-07 18:46:06,448 | INFO     | [A2A.MI] Salvati 1529 prezzi, 6 dividendi
+2026-01-07 18:46:06,449 | INFO     | Attesa 3 secondi prima del prossimo...
+2026-01-07 18:46:09,450 | INFO     | 
+--- [13/40] UCG.MI ---
+2026-01-07 18:46:09,450 | INFO     | [UCG.MI] Tentativo 1/3
+2026-01-07 18:46:10,625 | INFO     | Creato nuovo stock: UCG.MI
+2026-01-07 18:46:12,637 | INFO     | [UCG.MI] Salvati 1529 prezzi, 7 dividendi
+2026-01-07 18:46:12,637 | INFO     | Attesa 3 secondi prima del prossimo...
+2026-01-07 18:46:15,638 | INFO     | 
+--- [14/40] UNI.MI ---
+2026-01-07 18:46:15,638 | INFO     | [UNI.MI] Tentativo 1/3
+2026-01-07 18:46:16,951 | INFO     | Creato nuovo stock: UNI.MI
+2026-01-07 18:46:18,616 | INFO     | [UNI.MI] Salvati 1529 prezzi, 7 dividendi
+2026-01-07 18:46:18,617 | INFO     | Attesa 3 secondi prima del prossimo...
+2026-01-07 18:46:21,618 | INFO     | 
+--- [15/40] ATL.MI ---
+2026-01-07 18:46:21,618 | INFO     | [ATL.MI] Tentativo 1/3
+2026-01-07 18:46:22,137 | ERROR    | $ATL.MI: possibly delisted; no timezone found
+2026-01-07 18:46:22,138 | WARNING  | [ATL.MI] Dati storici vuoti
+2026-01-07 18:46:22,138 | INFO     | Attesa 3 secondi prima del prossimo...
+2026-01-07 18:46:25,139 | INFO     | 
+--- [16/40] BA.MI ---
+2026-01-07 18:46:25,140 | INFO     | [BA.MI] Tentativo 1/3
+2026-01-07 18:46:25,716 | ERROR    | $BA.MI: possibly delisted; no timezone found
+2026-01-07 18:46:25,717 | WARNING  | [BA.MI] Dati storici vuoti
+2026-01-07 18:46:25,719 | INFO     | Attesa 3 secondi prima del prossimo...
+2026-01-07 18:46:28,719 | INFO     | 
+--- [17/40] ZC.MI ---
+2026-01-07 18:46:28,719 | INFO     | [ZC.MI] Tentativo 1/3
+2026-01-07 18:46:29,266 | ERROR    | $ZC.MI: possibly delisted; no timezone found
+2026-01-07 18:46:29,267 | WARNING  | [ZC.MI] Dati storici vuoti
+2026-01-07 18:46:29,267 | INFO     | Attesa 3 secondi prima del prossimo...
+2026-01-07 18:46:32,268 | INFO     | 
+--- [18/40] SUS.MI ---
+2026-01-07 18:46:32,269 | INFO     | [SUS.MI] Tentativo 1/3
+2026-01-07 18:46:32,621 | ERROR    | $SUS.MI: possibly delisted; no timezone found
+2026-01-07 18:46:32,621 | WARNING  | [SUS.MI] Dati storici vuoti
+2026-01-07 18:46:32,622 | INFO     | Attesa 3 secondi prima del prossimo...
+2026-01-07 18:46:35,623 | INFO     | 
+--- [19/40] G.MI ---
+2026-01-07 18:46:35,623 | INFO     | [G.MI] Tentativo 1/3
+2026-01-07 18:46:36,966 | INFO     | Creato nuovo stock: G.MI
+2026-01-07 18:46:38,451 | INFO     | [G.MI] Salvati 1529 prezzi, 7 dividendi
+2026-01-07 18:46:38,451 | INFO     | Attesa 3 secondi prima del prossimo...
+2026-01-07 18:46:41,452 | INFO     | 
+--- [20/40] PIRC.MI ---
+2026-01-07 18:46:41,452 | INFO     | [PIRC.MI] Tentativo 1/3
+2026-01-07 18:46:42,494 | INFO     | Creato nuovo stock: PIRC.MI
+2026-01-07 18:46:43,767 | INFO     | [PIRC.MI] Salvati 1529 prezzi, 5 dividendi
+2026-01-07 18:46:43,768 | INFO     | Attesa 3 secondi prima del prossimo...
+2026-01-07 18:46:46,771 | INFO     | 
+--- [21/40] URG.MI ---
+2026-01-07 18:46:46,771 | INFO     | [URG.MI] Tentativo 1/3
+2026-01-07 18:46:47,155 | ERROR    | $URG.MI: possibly delisted; no timezone found
+2026-01-07 18:46:47,156 | WARNING  | [URG.MI] Dati storici vuoti
+2026-01-07 18:46:47,157 | INFO     | Attesa 3 secondi prima del prossimo...
+2026-01-07 18:46:50,159 | INFO     | 
+--- [22/40] INTZ.MI ---
+2026-01-07 18:46:50,160 | INFO     | [INTZ.MI] Tentativo 1/3
+2026-01-07 18:46:50,632 | ERROR    | $INTZ.MI: possibly delisted; no timezone found
+2026-01-07 18:46:50,632 | WARNING  | [INTZ.MI] Dati storici vuoti
+2026-01-07 18:46:50,633 | INFO     | Attesa 3 secondi prima del prossimo...
+2026-01-07 18:46:53,634 | INFO     | 
+--- [23/40] RACE.MI ---
+2026-01-07 18:46:53,634 | INFO     | [RACE.MI] Tentativo 1/3
+2026-01-07 18:46:54,653 | INFO     | Creato nuovo stock: RACE.MI
+2026-01-07 18:46:56,197 | INFO     | [RACE.MI] Salvati 1529 prezzi, 6 dividendi
+2026-01-07 18:46:56,197 | INFO     | Attesa 3 secondi prima del prossimo...

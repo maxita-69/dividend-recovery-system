@@ -104,14 +104,16 @@ def find_recovery(df, start_date, target_price, max_days=30):
     # Restituisci l'ultimo giorno disponibile
     last_date = future_data.index[-1]
     last_price = future_data.iloc[-1]['close']
-    actual_days_checked = len(future_data) - 1  # -1 perché giorno 0 è start_date
+    
+    # Calcola giorni trascorsi da start_date all'ultimo giorno disponibile
+    days_passed = (last_date - start_date).days
     
     return {
         'recovery_date': last_date,
-        'recovery_days': actual_days_checked,
+        'recovery_days': days_passed,  # Giorni REALI trascorsi
         'recovery_price': last_price,
         'recovered': False,
-        'reason': 'not_recovered' if len(future_data) == max_days else 'insufficient_data'
+        'reason': 'not_recovered' if len(future_data) >= max_days else 'insufficient_data'
     }
 
 
@@ -424,10 +426,10 @@ st.info(f"""
 st.divider()
 st.subheader("📊 Distribuzione Recovery Days")
 
-if not recovered_only.empty:
+if not truly_recovered.empty:
     # Histogram
     fig_hist = px.histogram(
-        recovered_only,
+        truly_recovered,
         x='recovery_days',
         nbins=15,
         title="Distribuzione Giorni per Recovery",
@@ -443,7 +445,7 @@ if not recovered_only.empty:
     
     # Box plot
     fig_box = px.box(
-        recovered_only,
+        truly_recovered,
         y='recovery_days',
         title="Box Plot Recovery Days",
         labels={'recovery_days': 'Giorni'},
@@ -460,13 +462,13 @@ else:
 st.divider()
 st.subheader("🔍 Correlazioni")
 
-if not recovered_only.empty:
+if not truly_recovered.empty:
     col1, col2 = st.columns(2)
     
     with col1:
         # Recovery vs Dividend Yield
         fig_yield = px.scatter(
-            recovered_only,
+            truly_recovered,
             x='div_yield',
             y='recovery_days',
             title="Recovery Days vs Dividend Yield",
@@ -479,7 +481,7 @@ if not recovered_only.empty:
     with col2:
         # Recovery vs Gap
         fig_gap = px.scatter(
-            recovered_only,
+            truly_recovered,
             x='gap_pct',
             y='recovery_days',
             title="Recovery Days vs Gap %",
@@ -490,7 +492,7 @@ if not recovered_only.empty:
         st.plotly_chart(fig_gap, use_container_width=True)
     
     # Correlation matrix
-    corr_data = recovered_only[['div_yield', 'gap_pct', 'recovery_days']].corr()
+    corr_data = truly_recovered[['div_yield', 'gap_pct', 'recovery_days']].corr()
     
     st.markdown("**Matrice di Correlazione:**")
     st.dataframe(corr_data.style.background_gradient(cmap='RdYlGn', vmin=-1, vmax=1), use_container_width=True)
@@ -502,9 +504,9 @@ if not recovered_only.empty:
 st.divider()
 st.subheader("💡 Insights")
 
-if not recovered_only.empty:
+if not truly_recovered.empty:
     # Best/Worst cases
-    best_idx = recovered_only['recovery_days'].idxmin()
+    best_idx = truly_recovered['recovery_days'].idxmin()
     worst_idx = all_recovery_days.idxmax()
     
     best_event = analysis_df.loc[best_idx]
