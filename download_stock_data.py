@@ -39,8 +39,8 @@ def download_stock_data(ticker, start_date='2020-01-01', end_date=None):
     try:
         stock = yf.Ticker(ticker)
         
-        # Download price history
-        hist = stock.history(start=start_date, end=end_date)
+        # ⚠️ FORZA I DATI NON ADJUSTED!
+        hist = stock.history(start=start_date, end=end_date, auto_adjust=False, back_adjust=False)
         
         if hist.empty:
             print(f"   ❌ No price data found for {ticker}")
@@ -68,8 +68,12 @@ def download_stock_data(ticker, start_date='2020-01-01', end_date=None):
         return None, str(e)
 
 
+
 def save_to_database(session, ticker, data):
     """Salva dati nel database"""
+    # Aggiungi questo debug prima di save_to_database
+    print("\n📈 PRIME RIGHE DEI PREZZI:")
+    print(data['prices'][['Open', 'High', 'Low', 'Close']].head())
     print(f"\n💾 Saving {ticker} to database...")
     
     # Check if stock exists
