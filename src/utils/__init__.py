@@ -5,6 +5,15 @@ from .recovery_analysis import find_recovery, analyze_all_dividends, calculate_r
 from .database import get_database_session, get_price_dataframe, session_scope, DatabaseError
 from .validation import validate_price_data, validate_dividend_data, ValidationError
 from .logging_config import get_logger, OperationLogger, setup_logging
+from .pattern_analysis import (
+    extract_pre_dividend_features,
+    calculate_recovery_metrics as calculate_pattern_recovery_metrics,
+    analyze_dividend,
+    find_correlations,
+    find_similar_patterns,
+    WindowFeatures,
+    RecoveryMetrics,
+)
 
 __all__ = [
     'find_recovery',
@@ -20,4 +29,11 @@ __all__ = [
     'get_logger',
     'OperationLogger',
     'setup_logging',
+    'extract_pre_dividend_features',
+    'calculate_pattern_recovery_metrics',
+    'analyze_dividend',
+    'find_correlations',
+    'find_similar_patterns',
+    'WindowFeatures',
+    'RecoveryMetrics',
 ]
