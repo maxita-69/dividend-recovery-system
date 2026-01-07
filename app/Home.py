@@ -197,17 +197,16 @@ try:
     
     # Quick Navigation
     st.subheader("🧭 Navigazione Rapida")
-    
-    col1, col2, col3 = st.columns(3)
-    
+
+    col1, col2 = st.columns(2)
+
     with col1:
         st.page_link("pages/1_Single_Stock.py", label="📊 Analisi Singolo Titolo", icon="📊")
-    
-    with col2:
         st.page_link("pages/2_Recovery_Analysis.py", label="📈 Recovery Analysis", icon="📈")
-    
-    with col3:
+
+    with col2:
         st.page_link("pages/3_Strategy_Comparison.py", label="⚙️ Confronto Strategie", icon="⚙️")
+        st.page_link("pages/4_Pattern_Analysis.py", label="🔍 Pattern Analysis", icon="🔍")
 
 except Exception as e:
     st.error(f"❌ Errore durante il caricamento: {str(e)}")

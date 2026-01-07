@@ -42,5 +42,8 @@ python-dateutil>=2.8.0
 # Tipi/dataclass (usati esplicitamente)
 typing-extensions>=4.8.0
 
-#grafici con linea di tendenza
-statsmodels
+# Statistical analysis
+statsmodels>=0.14.0
+
+# Machine Learning (for pattern analysis)
+scikit-learn>=1.3.0
