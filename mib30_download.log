@@ -139,3 +139,27 @@
 2026-01-07 18:46:54,653 | INFO     | Creato nuovo stock: RACE.MI
 2026-01-07 18:46:56,197 | INFO     | [RACE.MI] Salvati 1529 prezzi, 6 dividendi
 2026-01-07 18:46:56,197 | INFO     | Attesa 3 secondi prima del prossimo...
+2026-01-07 18:46:59,198 | INFO     | 
+--- [24/40] CNHI.MI ---
+2026-01-07 18:46:59,198 | INFO     | [CNHI.MI] Tentativo 1/3
+2026-01-07 18:46:59,512 | ERROR    | $CNHI.MI: possibly delisted; no timezone found
+2026-01-07 18:46:59,512 | WARNING  | [CNHI.MI] Dati storici vuoti
+2026-01-07 18:46:59,513 | INFO     | Attesa 3 secondi prima del prossimo...
+2026-01-07 18:47:02,515 | INFO     | 
+--- [25/40] BPER.MI ---
+2026-01-07 18:47:02,526 | INFO     | [BPER.MI] Tentativo 1/3
+2026-01-07 18:47:02,946 | ERROR    | $BPER.MI: possibly delisted; no timezone found
+2026-01-07 18:47:02,950 | WARNING  | [BPER.MI] Dati storici vuoti
+2026-01-07 18:47:02,953 | INFO     | Attesa 3 secondi prima del prossimo...
+2026-01-07 18:47:05,956 | INFO     | 
+--- [26/40] VLG.MI ---
+2026-01-07 18:47:05,957 | INFO     | [VLG.MI] Tentativo 1/3
+2026-01-07 18:47:06,510 | ERROR    | $VLG.MI: possibly delisted; no timezone found
+2026-01-07 18:47:06,512 | WARNING  | [VLG.MI] Dati storici vuoti
+2026-01-07 18:47:06,512 | INFO     | Attesa 3 secondi prima del prossimo...
+2026-01-07 18:47:09,513 | INFO     | 
+--- [27/40] REC.MI ---
+2026-01-07 18:47:09,514 | INFO     | [REC.MI] Tentativo 1/3
+2026-01-07 18:47:10,590 | INFO     | Creato nuovo stock: REC.MI
+2026-01-07 18:47:12,211 | INFO     | [REC.MI] Salvati 1529 prezzi, 12 dividendi
+2026-01-07 18:47:12,212 | INFO     | Attesa 3 secondi prima del prossimo...
