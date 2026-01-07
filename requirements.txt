@@ -38,3 +38,6 @@ pyyaml>=6.0
 
 # Date handling
 python-dateutil>=2.8.0
+
+# Tipi/dataclass (usati esplicitamente)
+typing-extensions>=4.8.0
