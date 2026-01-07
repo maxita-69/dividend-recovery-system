@@ -75,20 +75,16 @@ def find_recovery(df, start_date, target_price, max_days=30):
     
     Args:
         df: DataFrame con prezzi (index = date)
-        start_date: Data da cui iniziare la ricerca (tipicamente D0 o D+1)
-        target_price: Prezzo da recuperare (tipicamente D-1 close)
+        start_date: Data da cui iniziare (D0)
+        target_price: Prezzo da recuperare (D-1 close)
         max_days: Giorni massimi di ricerca
     
     Returns:
-        dict con:
-        - recovery_date: Data del recovery (o None)
-        - recovery_days: Giorni impiegati (0 se stesso giorno)
-        - recovery_price: Prezzo close al recovery
-        - recovered: True/False
+        dict con recovery_date, recovery_days, recovery_price, recovered
     """
     start_date = pd.Timestamp(start_date)
     
-    # Filtra dati >= start_date
+    # Filtra dati >= start_date e prendi max_days
     future_data = df[df.index >= start_date].head(max_days)
     
     if future_data.empty:
@@ -100,22 +96,25 @@ def find_recovery(df, start_date, target_price, max_days=30):
         }
     
     # Cerca primo giorno con close >= target
+    # enumerate parte da 0: giorno 0 = stesso giorno (D0)
     for i, (date, row) in enumerate(future_data.iterrows()):
         if row['close'] >= target_price:
             return {
                 'recovery_date': date,
-                'recovery_days': i,
+                'recovery_days': i,  # 0 = stesso giorno, 1 = giorno dopo, ecc.
                 'recovery_price': row['close'],
                 'recovered': True
             }
     
     # Non ha recuperato entro max_days
+    # Restituisci l'ultimo giorno disponibile
     last_date = future_data.index[-1]
     last_price = future_data.iloc[-1]['close']
+    actual_days_checked = len(future_data) - 1  # -1 perché giorno 0 è start_date
     
     return {
         'recovery_date': last_date,
-        'recovery_days': len(future_data) - 1,
+        'recovery_days': actual_days_checked,
         'recovery_price': last_price,
         'recovered': False
     }
