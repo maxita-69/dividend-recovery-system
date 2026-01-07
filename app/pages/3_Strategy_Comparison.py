@@ -291,116 +291,6 @@ def strategy_long_without_dividend(df, ex_date, dividend_amount, leverage, capit
 
 
 # ============================================================================
-# STRATEGIA C: SHORT + LONG
-# ============================================================================
-
-def strategy_short_long(df, ex_date, dividend_amount, leverage, capital):
-    """
-    STRATEGIA C: Short D-1 close, chiudi+long D0 open, vende al recovery
-    
-    Phase 1: SHORT da D-1 17:25 a D0 09:05
-    Phase 2: LONG da D0 09:05 fino a recovery
-    """
-    ex_date = pd.Timestamp(ex_date)
-    
-    # Trova D-1
-    dates_before = df[df.index < ex_date]
-    if dates_before.empty:
-        return {'error': 'Nessun dato prima dello stacco'}
-    
-    d_minus_1 = dates_before.index[-1]
-    short_entry = df.loc[d_minus_1, 'close']
-    target_price = short_entry  # Recovery target
-    
-    # D0 open
-    if ex_date not in df.index:
-        return {'error': 'Ex-date non presente nei dati'}
-    
-    short_exit = df.loc[ex_date, 'open']
-    long_entry = short_exit  # Stesso prezzo (simultaneo)
-    
-    # Posizione
-    shares = (capital * leverage) / short_entry
-    exposure_short = shares * short_entry
-    exposure_long = shares * long_entry
-    
-    # PHASE 1: SHORT (D-1 close → D0 open)
-    short_profit = (short_entry - short_exit) * shares
-    dividend_cost = dividend_amount * shares  # DEVI PAGARE il dividendo quando sei short!
-    
-    # Costi SHORT
-    comm_short_entry = calculate_commission(exposure_short)
-    comm_short_exit = calculate_commission(shares * short_exit)
-    overnight_short = (exposure_short * SHORT_COST_RATE / 365) * 1  # 1 notte
-    
-    phase1_gross = short_profit - dividend_cost
-    phase1_costs = comm_short_entry + comm_short_exit + overnight_short
-    phase1_net = phase1_gross - phase1_costs
-    
-    # PHASE 2: LONG (D0 open → recovery)
-    recovery = find_recovery(df, ex_date, target_price=target_price, max_days=30)
-    
-    if not recovery['recovered']:
-        sell_date = recovery['recovery_date']
-        sell_price = recovery['recovery_price']
-        recovered = False
-    else:
-        sell_date = recovery['recovery_date']
-        sell_price = recovery['recovery_price']
-        recovered = True
-    
-    long_profit = (sell_price - long_entry) * shares
-    
-    # Costi LONG
-    comm_long_entry = calculate_commission(exposure_long)
-    comm_long_exit = calculate_commission(shares * sell_price)
-    tobin_long = exposure_long * TOBIN_TAX_RATE
-    
-    # Overnight: da D0 a sell_date
-    overnight_days_long = (sell_date - ex_date).days
-    overnight_long = (exposure_long * OVERNIGHT_RATE / 365) * overnight_days_long
-    
-    phase2_gross = long_profit
-    phase2_costs = comm_long_entry + comm_long_exit + tobin_long + overnight_long
-    phase2_net = phase2_gross - phase2_costs
-    
-    # TOTALE
-    total_gross = phase1_gross + phase2_gross
-    total_costs = phase1_costs + phase2_costs
-    net_profit = phase1_net + phase2_net
-    roi = (net_profit / capital) * 100
-    
-    return {
-        'strategy': 'SHORT+LONG',
-        'buy_date': d_minus_1,
-        'sell_date': sell_date,
-        'shares': shares,
-        'leverage': leverage,
-        'recovery_days': recovery['recovery_days'],
-        'recovered': recovered,
-        # Phase 1
-        'short_entry': short_entry,
-        'short_exit': short_exit,
-        'phase1_profit': short_profit,
-        'dividend_cost': dividend_cost,
-        'phase1_gross': phase1_gross,
-        'phase1_costs': phase1_costs,
-        'phase1_net': phase1_net,
-        # Phase 2
-        'long_entry': long_entry,
-        'long_exit': sell_price,
-        'phase2_profit': long_profit,
-        'phase2_costs': phase2_costs,
-        'phase2_net': phase2_net,
-        # Total
-        'gross_profit': total_gross,
-        'total_costs': total_costs,
-        'net_profit': net_profit,
-        'roi': roi
-    }
-
-
-# ============================================================================
 # STREAMLIT UI
 # ============================================================================
 
@@ -413,12 +303,13 @@ def get_database_session():
     return Session()
 
 
-st.title("⚙️ Confronto Strategie - VERSIONE CORRETTA")
+st.title("⚙️ Confronto Strategie A vs B")
 st.markdown("""
-Confronto **3 strategie** con **dati storici REALI** e **recovery detection automatico**:
-- **A**: LONG D-1 (con dividendo)
-- **B**: LONG D0 (senza dividendo)
-- **C**: SHORT+LONG (short il gap, long il recovery)
+Confronto **2 strategie** con **dati storici REALI** e **recovery detection automatico**:
+- **Strategia A**: LONG D-1 (con dividendo) - Compra giorno prima, incassa dividendo
+- **Strategia B**: LONG D0 (senza dividendo) - Compra giorno stacco, prezzo già scontato
+
+🎯 **Obiettivo**: Verificare quale strategia rende di più al netto dei costi Fineco
 """)
 
 session = get_database_session()
@@ -482,13 +373,6 @@ if st.button("🚀 Calcola con Dati REALI", type="primary"):
             else:
                 st.error(f"Strategia B: {r_b['error']}")
             
-            # Strategia C
-            r_c = strategy_short_long(df, dividend.ex_date, dividend.amount, leverage, capital)
-            if 'error' not in r_c:
-                results.append(r_c)
-            else:
-                st.error(f"Strategia C: {r_c['error']}")
-            
             if not results:
                 st.error("❌ Nessuna strategia calcolabile")
                 st.stop()
@@ -546,19 +430,6 @@ if st.button("🚀 Calcola con Dati REALI", type="primary"):
                         st.write(f"- Commissione sell: €{r['comm_sell']:.2f}")
                         st.write(f"- Tobin tax: €{r['tobin_tax']:.2f}")
                         st.write(f"- Overnight cost: €{r['overnight_cost']:.2f}")
-                    
-                    # Short+Long specifics
-                    if 'phase1_net' in r:
-                        st.markdown("**Phase 1 (SHORT):**")
-                        st.write(f"- Short profit: €{r['phase1_profit']:.2f}")
-                        st.write(f"- Dividend COST: -€{r['dividend_cost']:.2f}")
-                        st.write(f"- Phase 1 costs: €{r['phase1_costs']:.2f}")
-                        st.write(f"- **Phase 1 net: €{r['phase1_net']:.2f}**")
-                        
-                        st.markdown("**Phase 2 (LONG):**")
-                        st.write(f"- Long profit: €{r['phase2_profit']:.2f}")
-                        st.write(f"- Phase 2 costs: €{r['phase2_costs']:.2f}")
-                        st.write(f"- **Phase 2 net: €{r['phase2_net']:.2f}**")
                     
                     # Dividend income
                     if 'dividend_income' in r and r['dividend_income'] > 0:
