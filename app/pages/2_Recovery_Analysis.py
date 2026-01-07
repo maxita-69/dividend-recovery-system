@@ -456,80 +456,98 @@ else:
     st.warning("⚠️ Nessun recovery completato per creare grafici")
 
 # ============================================================================
-# SEZIONE 4: CORRELAZIONI
+# SEZIONE 4: PRICE EVOLUTION TABLE
 # ============================================================================
 
 st.divider()
-st.subheader("🔍 Correlazioni")
+st.subheader("📊 Price Evolution - Andamento Post-Dividendo")
 
-if not truly_recovered.empty:
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        # Recovery vs Dividend Yield
-        fig_yield = px.scatter(
-            truly_recovered,
-            x='div_yield',
-            y='recovery_days',
-            title="Recovery Days vs Dividend Yield",
-            labels={'div_yield': 'Dividend Yield %', 'recovery_days': 'Recovery Days'},
-            trendline="ols",
-            color_discrete_sequence=['#ff7f0e']
-        )
-        st.plotly_chart(fig_yield, use_container_width=True)
-    
-    with col2:
-        # Recovery vs Gap
-        fig_gap = px.scatter(
-            truly_recovered,
-            x='gap_pct',
-            y='recovery_days',
-            title="Recovery Days vs Gap %",
-            labels={'gap_pct': 'Gap %', 'recovery_days': 'Recovery Days'},
-            trendline="ols",
-            color_discrete_sequence=['#d62728']
-        )
-        st.plotly_chart(fig_gap, use_container_width=True)
-    
-    # Correlation matrix
-    corr_data = truly_recovered[['div_yield', 'gap_pct', 'recovery_days']].corr()
-    
-    st.markdown("**Matrice di Correlazione:**")
-    st.dataframe(corr_data.style.background_gradient(cmap='RdYlGn', vmin=-1, vmax=1), use_container_width=True)
+st.markdown("""
+**Questa tabella mostra come evolve il prezzo nei giorni successivi allo stacco.**
 
-# ============================================================================
-# SEZIONE 5: INSIGHTS
-# ============================================================================
+Colonne:
+- **D-1 Close**: Prezzo di riferimento (target recovery)
+- **D+5, D+10, D+15, D+20, D+30**: Prezzo close a N giorni dallo stacco
+- **% change**: Variazione percentuale rispetto a D-1 close
+""")
 
-st.divider()
-st.subheader("💡 Insights")
+# Costruisci tabella price evolution
+evolution_data = []
 
-if not truly_recovered.empty:
-    # Best/Worst cases
-    best_idx = truly_recovered['recovery_days'].idxmin()
-    worst_idx = all_recovery_days.idxmax()
+for _, div_row in analysis_df.iterrows():
+    ex_date = pd.Timestamp(div_row['ex_date'])
+    target_price = div_row['d_minus_1_close']
     
-    best_event = analysis_df.loc[best_idx]
-    worst_event = analysis_df.loc[worst_idx]
+    row_data = {
+        'ex_date': div_row['ex_date'],
+        'dividend': div_row['dividend'],
+        'd_minus_1_close': target_price
+    }
     
-    col1, col2 = st.columns(2)
+    # Per ogni checkpoint (5, 10, 15, 20, 30 giorni)
+    for days in [5, 10, 15, 20, 30]:
+        future_date = ex_date + pd.Timedelta(days=days)
+        
+        # Cerca il prezzo a quella data (o il più vicino)
+        future_prices = df[df.index >= future_date]
+        
+        if not future_prices.empty:
+            actual_date = future_prices.index[0]
+            price = future_prices.iloc[0]['close']
+            pct_change = ((price - target_price) / target_price) * 100
+            
+            row_data[f'd_plus_{days}'] = price
+            row_data[f'd_plus_{days}_pct'] = pct_change
+        else:
+            row_data[f'd_plus_{days}'] = None
+            row_data[f'd_plus_{days}_pct'] = None
     
-    with col1:
-        st.success(f"""
-        **🏆 Recovery Più Veloce:**
-        - Data: {best_event['ex_date'].strftime('%Y-%m-%d')}
-        - Recovery: {best_event['recovery_days']} giorni
-        - Dividend: €{best_event['dividend']:.3f} ({best_event['div_yield']:.2f}%)
-        """)
+    evolution_data.append(row_data)
+
+evolution_df = pd.DataFrame(evolution_data)
+
+# Formatta per display
+display_evolution = evolution_df.copy()
+display_evolution['ex_date'] = pd.to_datetime(display_evolution['ex_date']).dt.strftime('%Y-%m-%d')
+display_evolution['dividend'] = display_evolution['dividend'].apply(lambda x: f"€{x:.3f}")
+display_evolution['d_minus_1_close'] = display_evolution['d_minus_1_close'].apply(lambda x: f"€{x:.3f}")
+
+# Formatta colonne D+N con prezzo e %
+for days in [5, 10, 15, 20, 30]:
+    price_col = f'd_plus_{days}'
+    pct_col = f'd_plus_{days}_pct'
     
-    with col2:
-        st.error(f"""
-        **🐌 Recovery Più Lento:**
-        - Data: {worst_event['ex_date'].strftime('%Y-%m-%d')}
-        - Recovery: {worst_event['recovery_days']} giorni
-        - Dividend: €{worst_event['dividend']:.3f} ({worst_event['div_yield']:.2f}%)
-        - Recovered: {'✅' if worst_event['recovered'] else '❌'}
-        """)
+    def format_price_pct(row):
+        price = row[price_col]
+        pct = row[pct_col]
+        if pd.isna(price):
+            return "N/A"
+        sign = "+" if pct >= 0 else ""
+        return f"€{price:.3f} ({sign}{pct:.1f}%)"
+    
+    display_evolution[f'D+{days}'] = display_evolution.apply(format_price_pct, axis=1)
+    display_evolution = display_evolution.drop(columns=[price_col, pct_col])
+
+# Seleziona colonne finali
+display_evolution = display_evolution[[
+    'ex_date', 'dividend', 'd_minus_1_close', 
+    'D+5', 'D+10', 'D+15', 'D+20', 'D+30'
+]]
+
+display_evolution = display_evolution.rename(columns={
+    'ex_date': 'Ex-Date',
+    'dividend': 'Dividendo',
+    'd_minus_1_close': 'D-1 Close'
+})
+
+st.dataframe(display_evolution, use_container_width=True, hide_index=True)
+
+st.info("""
+💡 **Come leggere:**
+- 🟢 **Positivo (+%)** = Il prezzo ha recuperato ed è sopra D-1
+- 🔴 **Negativo (-%)** = Il prezzo è ancora sotto D-1
+- **N/A** = Dati non disponibili per quella data
+""")
 
 # Footer
 st.divider()
