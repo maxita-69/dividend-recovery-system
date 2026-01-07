@@ -26,16 +26,24 @@ Verificare empiricamente se titoli con **fondamentali forti** (validati da Divid
 ```
 dividend-recovery-system/
 ├── src/
-│   ├── data_collector/     # Scraping dati dividend + prezzi
-│   ├── analyzer/           # Engine analisi quantitativa
-│   ├── dashboard/          # Interfaccia web Streamlit
-│   └── database/           # Gestione SQLite DB
-├── data/
-│   ├── raw/               # Dati grezzi (git-ignored)
-│   └── processed/         # Dati puliti (git-ignored)
-├── tests/                 # Test automatizzati
-├── scripts/               # Script utility
-└── docs/                  # Documentazione
+│   ├── database/           # Gestione SQLite DB (models)
+│   └── utils/             # Utilities condivise ⭐ NEW
+│       ├── recovery_analysis.py  # Logica recovery condivisa
+│       ├── database.py           # Session management
+│       ├── validation.py         # Data quality checks
+│       └── logging_config.py     # Structured logging
+├── app/
+│   ├── Home.py            # Dashboard principale
+│   └── pages/             # Pagine Streamlit
+│       ├── 1_Single_Stock.py
+│       ├── 2_Recovery_Analysis.py
+│       └── 3_Strategy_Comparison.py
+├── tests/                 # Test automatizzati ⭐ NEW (35 tests)
+├── scripts/               # Script download dati
+├── data/                  # Database SQLite
+├── logs/                  # Application logs ⭐ NEW
+├── config.py              # Configurazione centralizzata ⭐ NEW
+└── IMPROVEMENTS.md        # Changelog miglioramenti ⭐ NEW
 ```
 
 ## 🚀 Quick Start
