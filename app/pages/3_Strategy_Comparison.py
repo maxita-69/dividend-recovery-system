@@ -1,14 +1,13 @@
 """
-Strategy Comparison - LONG D-1 vs LONG D0 vs FLIP & RIDE
-Confronto strategie con costi REALI Fineco Conto Trading
+Strategy Comparison - VERSIONE CORRETTA
+Confronto LONG D-1 vs LONG D0 vs SHORT+LONG con dati REALI e recovery detection
 """
 
 import streamlit as st
 import sys
 from pathlib import Path
 import pandas as pd
-from dataclasses import dataclass
-from typing import Optional, Dict, Any
+from datetime import timedelta
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -23,73 +22,37 @@ st.set_page_config(
     layout="wide"
 )
 
-# COSTI FINECO CONTO TRADING (aggiornati a 2025)
+# ============================================================================
+# COSTI FINECO CONTO TRADING
+# ============================================================================
 COMMISSION_RATE = 0.0019      # 0.19%
 COMMISSION_MIN = 2.95         # €
 COMMISSION_MAX = 19.0         # €
 TOBIN_TAX_RATE = 0.001        # 0.1% solo su acquisto
-OVERNIGHT_RATE = 0.105        # ~10.5% (EURIBOR 2.5% + spread 8%)
-SHORT_COST_RATE = 0.0695      # 6.95% p.a. su posizioni short
+EURIBOR_1M = 0.025            # 2.5% (aggiornare periodicamente)
+OVERNIGHT_SPREAD = 0.0799     # 7.99%
+OVERNIGHT_RATE = EURIBOR_1M + OVERNIGHT_SPREAD  # ~10.5% annuo
+SHORT_COST_RATE = 0.0695      # 6.95% annuo
 
 
-def calculate_commission(controvalore: float) -> float:
+def calculate_commission(controvalore):
     """Calcola commissione Fineco: 0.19% (min €2.95, max €19)"""
     comm = controvalore * COMMISSION_RATE
     return max(COMMISSION_MIN, min(comm, COMMISSION_MAX))
 
 
-@dataclass
-class PriceContext:
-    """Contesto temporale per uno stacco dividendo"""
-    stock_id: int
-    ticker: str
-    ex_date: pd.Timestamp
-    dividend_amount: float
-    d_minus_1_close: float
-    d0_open: float
-    d0_close: float
-    d_plus_1_open: Optional[float] = None
-    recovery_target: float = 0.0  # default: D-1 close
+# ============================================================================
+# FUNZIONI CORE - RECOVERY DETECTION
+# ============================================================================
 
-    @property
-    def gap(self) -> float:
-        return self.d_minus_1_close - self.d0_open
-
-
-@dataclass
-class StrategyResult:
-    strategy: str
-    net_profit: float
-    gross_profit: float
-    total_costs: float
-    roi_pct: float
-    recovery_days: int
-    shares: float
-    exposure: float
-    buy_price: float
-    sell_price: float
-    buy_date: pd.Timestamp
-    sell_date: pd.Timestamp
-    details: Dict[str, Any]
-
-
-@st.cache_resource
-def get_database_session():
-    """Get database session"""
-    db_path = Path(__file__).parent.parent.parent / "data" / "dividend_recovery.db"
-    if not db_path.exists():
-        st.error(f"❌ Database non trovato: {db_path}")
-        st.stop()
-    engine = create_engine(f"sqlite:///{db_path}", echo=False)
-    Session = sessionmaker(bind=engine)
-    return Session()
-
-
-def get_price_context(session, stock_id: int, ex_date: str, dividend_amount: float) -> PriceContext:
-    """Estrae il contesto temporale attorno allo stacco"""
-    prices = session.query(PriceData).filter_by(stock_id=stock_id).order_by(PriceData.date).all()
+def get_price_dataframe(session, stock_id):
+    """Ottieni DataFrame prezzi ordinato per data"""
+    prices = session.query(PriceData).filter_by(
+        stock_id=stock_id
+    ).order_by(PriceData.date).all()
+    
     if not prices:
-        raise ValueError("Nessun dato storico per questo titolo")
+        return None
     
     df = pd.DataFrame([{
         'date': p.date,
@@ -99,245 +62,364 @@ def get_price_context(session, stock_id: int, ex_date: str, dividend_amount: flo
         'close': p.close,
         'volume': p.volume
     } for p in prices])
+    
     df['date'] = pd.to_datetime(df['date'])
     df = df.set_index('date')
     
-    ex_ts = pd.Timestamp(ex_date)
-    if ex_ts not in df.index:
-        raise ValueError(f"Ex-date {ex_date} non presente nei dati")
-    
-    idx = df.index.get_loc(ex_ts)
-    if idx == 0:
-        raise ValueError("Nessun dato precedente lo stacco")
-    
-    d_minus_1_close = df.iloc[idx - 1]['close']
-    d0_open = df.loc[ex_ts, 'open']
-    d0_close = df.loc[ex_ts, 'close']
-    
-    d_plus_1_open = None
-    if idx + 1 < len(df):
-        d_plus_1_open = df.iloc[idx + 1]['open']
-    
-    # Target di recovery: D-1 close (break-even rispetto a chi ha tenuto)
-    recovery_target = d_minus_1_close
-    
-    return PriceContext(
-        stock_id=stock_id,
-        ticker="",
-        ex_date=ex_ts,
-        dividend_amount=dividend_amount,
-        d_minus_1_close=d_minus_1_close,
-        d0_open=d0_open,
-        d0_close=d0_close,
-        d_plus_1_open=d_plus_1_open,
-        recovery_target=recovery_target
-    )
+    return df
 
 
-def apply_fineco_costs(
-    gross_profit: float,
-    exposure: float,
-    shares: float,
-    buy_price: float,
-    sell_price: float,
-    buy_date: pd.Timestamp,
-    sell_date: pd.Timestamp,
-    operations: int = 2,  # buy + sell
-    short_exposure: float = 0.0,
-    overnight_days_long: int = 0,
-    overnight_days_short: int = 0,
-    tobin_tax_applies: bool = True
-) -> float:
-    """Applica costi Fineco e restituisce net_profit"""
-    # Commissioni (1 per operazione)
-    comm_total = operations * calculate_commission(exposure)
+def find_recovery(df, start_date, target_price, max_days=30):
+    """
+    Cerca il PRIMO giorno in cui il prezzo close >= target_price
     
-    # Tobin tax (solo su acquisti)
-    tobin = exposure * TOBIN_TAX_RATE if tobin_tax_applies else 0.0
+    Args:
+        df: DataFrame con prezzi (index = date)
+        start_date: Data da cui iniziare la ricerca (tipicamente D0 o D+1)
+        target_price: Prezzo da recuperare (tipicamente D-1 close)
+        max_days: Giorni massimi di ricerca
     
-    # Overnight cost long
-    overnight_long = exposure * OVERNIGHT_RATE / 365 * overnight_days_long
+    Returns:
+        dict con:
+        - recovery_date: Data del recovery (o None)
+        - recovery_days: Giorni impiegati (0 se stesso giorno)
+        - recovery_price: Prezzo close al recovery
+        - recovered: True/False
+    """
+    start_date = pd.Timestamp(start_date)
     
-    # Overnight cost short (se applicabile)
-    overnight_short = short_exposure * SHORT_COST_RATE / 365 * overnight_days_short
+    # Filtra dati >= start_date
+    future_data = df[df.index >= start_date].head(max_days)
     
-    total_costs = comm_total + tobin + overnight_long + overnight_short
-    net_profit = gross_profit - total_costs
-    return net_profit, total_costs
+    if future_data.empty:
+        return {
+            'recovery_date': None,
+            'recovery_days': None,
+            'recovery_price': None,
+            'recovered': False
+        }
+    
+    # Cerca primo giorno con close >= target
+    for i, (date, row) in enumerate(future_data.iterrows()):
+        if row['close'] >= target_price:
+            return {
+                'recovery_date': date,
+                'recovery_days': i,
+                'recovery_price': row['close'],
+                'recovered': True
+            }
+    
+    # Non ha recuperato entro max_days
+    last_date = future_data.index[-1]
+    last_price = future_data.iloc[-1]['close']
+    
+    return {
+        'recovery_date': last_date,
+        'recovery_days': len(future_data) - 1,
+        'recovery_price': last_price,
+        'recovered': False
+    }
 
 
-def simulate_long_d1(context: PriceContext, capital: float, leverage: float) -> StrategyResult:
-    buy_price = context.d_minus_1_close
+# ============================================================================
+# STRATEGIA A: LONG CON DIVIDENDO
+# ============================================================================
+
+def strategy_long_with_dividend(df, ex_date, dividend_amount, leverage, capital):
+    """
+    STRATEGIA A: Compra D-1 close, incassa dividendo, vende al recovery
+    
+    Entry: D-1 alle 17:25 (approssimato con close)
+    Exit: Primo giorno con close >= D-1 close
+    """
+    ex_date = pd.Timestamp(ex_date)
+    
+    # Trova D-1
+    dates_before = df[df.index < ex_date]
+    if dates_before.empty:
+        return {'error': 'Nessun dato prima dello stacco'}
+    
+    d_minus_1 = dates_before.index[-1]
+    buy_price = df.loc[d_minus_1, 'close']
+    
+    # Calcola posizione
     shares = (capital * leverage) / buy_price
     exposure = shares * buy_price
     
-    # Cerca recupero al prezzo d'acquisto
-    # Per simulazione: ipotizziamo recovery in 5 giorni (dato reale: spesso 1-3)
-    # In futuro: estendi con dati storici del recupero
-    recovery_days = 3  # placeholder — da sostituire con logica reale
-    sell_price = context.recovery_target  # break-even
+    # Cerca recovery (da D0 in poi)
+    recovery = find_recovery(df, ex_date, target_price=buy_price, max_days=30)
     
+    if not recovery['recovered']:
+        # Non ha recuperato: vendi comunque all'ultimo giorno
+        sell_date = recovery['recovery_date']
+        sell_price = recovery['recovery_price']
+        recovered = False
+    else:
+        sell_date = recovery['recovery_date']
+        sell_price = recovery['recovery_price']
+        recovered = True
+    
+    # P&L
     price_gain = (sell_price - buy_price) * shares
-    dividend_income = context.dividend_amount * shares
+    dividend_income = dividend_amount * shares
     gross_profit = price_gain + dividend_income
     
-    # Costi: buy + sell (2 operazioni)
-    # Overnight: 1 notte (D-1 → D0), poi chiusura in D+recovery_days
-    overnight_days = 1 + recovery_days
-    net_profit, total_costs = apply_fineco_costs(
-        gross_profit=gross_profit,
-        exposure=exposure,
-        shares=shares,
-        buy_price=buy_price,
-        sell_price=sell_price,
-        buy_date=context.ex_date - pd.Timedelta(days=1),
-        sell_date=context.ex_date + pd.Timedelta(days=recovery_days),
-        operations=2,
-        overnight_days_long=overnight_days,
-        tobin_tax_applies=True
-    )
+    # COSTI
+    # 1. Commissioni: buy + sell
+    comm_buy = calculate_commission(exposure)
+    comm_sell = calculate_commission(shares * sell_price)
     
-    return StrategyResult(
-        strategy="LONG D-1",
-        net_profit=net_profit,
-        gross_profit=gross_profit,
-        total_costs=total_costs,
-        roi_pct=(net_profit / capital) * 100,
-        recovery_days=recovery_days,
-        shares=shares,
-        exposure=exposure,
-        buy_price=buy_price,
-        sell_price=sell_price,
-        buy_date=context.ex_date - pd.Timedelta(days=1),
-        sell_date=context.ex_date + pd.Timedelta(days=recovery_days),
-        details={
-            "price_gain": price_gain,
-            "dividend_income": dividend_income
-        }
-    )
+    # 2. Tobin tax: solo su acquisto
+    tobin = exposure * TOBIN_TAX_RATE
+    
+    # 3. Overnight: da D-1 a sell_date
+    overnight_days = (sell_date - d_minus_1).days
+    overnight_cost = (exposure * OVERNIGHT_RATE / 365) * overnight_days
+    
+    total_costs = comm_buy + comm_sell + tobin + overnight_cost
+    net_profit = gross_profit - total_costs
+    roi = (net_profit / capital) * 100
+    
+    return {
+        'strategy': 'LONG D-1 (con dividendo)',
+        'buy_date': d_minus_1,
+        'buy_price': buy_price,
+        'sell_date': sell_date,
+        'sell_price': sell_price,
+        'shares': shares,
+        'exposure': exposure,
+        'leverage': leverage,
+        'recovery_days': recovery['recovery_days'],
+        'recovered': recovered,
+        'price_gain': price_gain,
+        'dividend_income': dividend_income,
+        'gross_profit': gross_profit,
+        'comm_buy': comm_buy,
+        'comm_sell': comm_sell,
+        'tobin_tax': tobin,
+        'overnight_cost': overnight_cost,
+        'total_costs': total_costs,
+        'net_profit': net_profit,
+        'roi': roi
+    }
 
 
-def simulate_long_d0(context: PriceContext, capital: float, leverage: float) -> StrategyResult:
-    buy_price = context.d0_open
+# ============================================================================
+# STRATEGIA B: LONG SENZA DIVIDENDO
+# ============================================================================
+
+def strategy_long_without_dividend(df, ex_date, dividend_amount, leverage, capital):
+    """
+    STRATEGIA B: Compra D0 open, NO dividendo, vende al recovery
+    
+    Entry: D0 alle 09:05 (approssimato con open)
+    Exit: Primo giorno con close >= D-1 close (stesso target di A!)
+    """
+    ex_date = pd.Timestamp(ex_date)
+    
+    # Trova D-1 close (target recovery)
+    dates_before = df[df.index < ex_date]
+    if dates_before.empty:
+        return {'error': 'Nessun dato prima dello stacco'}
+    
+    d_minus_1 = dates_before.index[-1]
+    target_price = df.loc[d_minus_1, 'close']
+    
+    # Entry: D0 open
+    if ex_date not in df.index:
+        return {'error': 'Ex-date non presente nei dati'}
+    
+    buy_price = df.loc[ex_date, 'open']
+    
+    # Calcola posizione
     shares = (capital * leverage) / buy_price
     exposure = shares * buy_price
     
-    # Recovery al prezzo D-1 close (break-even vs chi ha tenuto)
-    recovery_days = 3
-    sell_price = context.recovery_target
+    # Cerca recovery (da D0 in poi, stesso target di A)
+    recovery = find_recovery(df, ex_date, target_price=target_price, max_days=30)
     
+    if not recovery['recovered']:
+        sell_date = recovery['recovery_date']
+        sell_price = recovery['recovery_price']
+        recovered = False
+    else:
+        sell_date = recovery['recovery_date']
+        sell_price = recovery['recovery_price']
+        recovered = True
+    
+    # P&L
     price_gain = (sell_price - buy_price) * shares
-    dividend_income = 0.0
+    dividend_income = 0.0  # NO dividendo
     gross_profit = price_gain
     
-    # Costi: buy + sell
-    # Overnight: solo recovery_days (apertura D0 → chiusura D+recovery)
-    overnight_days = recovery_days
-    net_profit, total_costs = apply_fineco_costs(
-        gross_profit=gross_profit,
-        exposure=exposure,
-        shares=shares,
-        buy_price=buy_price,
-        sell_price=sell_price,
-        buy_date=context.ex_date,
-        sell_date=context.ex_date + pd.Timedelta(days=recovery_days),
-        operations=2,
-        overnight_days_long=overnight_days,
-        tobin_tax_applies=True
-    )
+    # COSTI
+    comm_buy = calculate_commission(exposure)
+    comm_sell = calculate_commission(shares * sell_price)
+    tobin = exposure * TOBIN_TAX_RATE
     
-    return StrategyResult(
-        strategy="LONG D0",
-        net_profit=net_profit,
-        gross_profit=gross_profit,
-        total_costs=total_costs,
-        roi_pct=(net_profit / capital) * 100,
-        recovery_days=recovery_days,
-        shares=shares,
-        exposure=exposure,
-        buy_price=buy_price,
-        sell_price=sell_price,
-        buy_date=context.ex_date,
-        sell_date=context.ex_date + pd.Timedelta(days=recovery_days),
-        details={
-            "price_gain": price_gain,
-            "dividend_income": dividend_income
-        }
-    )
+    # Overnight: da D0 a sell_date
+    overnight_days = (sell_date - ex_date).days
+    overnight_cost = (exposure * OVERNIGHT_RATE / 365) * overnight_days
+    
+    total_costs = comm_buy + comm_sell + tobin + overnight_cost
+    net_profit = gross_profit - total_costs
+    roi = (net_profit / capital) * 100
+    
+    return {
+        'strategy': 'LONG D0 (senza dividendo)',
+        'buy_date': ex_date,
+        'buy_price': buy_price,
+        'sell_date': sell_date,
+        'sell_price': sell_price,
+        'shares': shares,
+        'exposure': exposure,
+        'leverage': leverage,
+        'recovery_days': recovery['recovery_days'],
+        'recovered': recovered,
+        'target_price': target_price,
+        'price_gain': price_gain,
+        'dividend_income': dividend_income,
+        'gross_profit': gross_profit,
+        'comm_buy': comm_buy,
+        'comm_sell': comm_sell,
+        'tobin_tax': tobin,
+        'overnight_cost': overnight_cost,
+        'total_costs': total_costs,
+        'net_profit': net_profit,
+        'roi': roi
+    }
 
 
-def simulate_flip_ride(context: PriceContext, capital: float, leverage: float) -> StrategyResult:
-    if context.d_plus_1_open is None:
-        raise ValueError("Necessario almeno un giorno dopo lo stacco per FLIP & RIDE")
+# ============================================================================
+# STRATEGIA C: SHORT + LONG
+# ============================================================================
+
+def strategy_short_long(df, ex_date, dividend_amount, leverage, capital):
+    """
+    STRATEGIA C: Short D-1 close, chiudi+long D0 open, vende al recovery
     
-    buy_price_1 = context.d_minus_1_close
-    shares = (capital * leverage) / buy_price_1
-    exposure = shares * buy_price_1
+    Phase 1: SHORT da D-1 17:25 a D0 09:05
+    Phase 2: LONG da D0 09:05 fino a recovery
+    """
+    ex_date = pd.Timestamp(ex_date)
     
-    # Fase 1: Long D-1 close → sell D0 open
-    profit1 = (context.d0_open - buy_price_1 + context.dividend_amount) * shares
+    # Trova D-1
+    dates_before = df[df.index < ex_date]
+    if dates_before.empty:
+        return {'error': 'Nessun dato prima dello stacco'}
     
-    # Fase 2: Short D0 open → cover D0 close
-    profit2 = (context.d0_open - context.d0_close) * shares
+    d_minus_1 = dates_before.index[-1]
+    short_entry = df.loc[d_minus_1, 'close']
+    target_price = short_entry  # Recovery target
     
-    # Fase 3: Re-buy D+1 open → sell a recovery target
-    buy_price_2 = context.d_plus_1_open
-    sell_price = context.recovery_target
-    profit3 = (sell_price - buy_price_2) * shares
+    # D0 open
+    if ex_date not in df.index:
+        return {'error': 'Ex-date non presente nei dati'}
     
-    gross_profit = profit1 + profit2 + profit3
+    short_exit = df.loc[ex_date, 'open']
+    long_entry = short_exit  # Stesso prezzo (simultaneo)
     
-    # Costi:
-    # - 6 operazioni: buy, sell, short, cover, re-buy, sell
-    # - Overnight: 
-    #     * long: 1 notte (D-1 → D0) → ma chiuso all'apertura → 0 notti
-    #     * short: 0 notti (chiuso in giornata)
-    #     * long2: recovery_days (da D+1 a D+1+recovery)
-    recovery_days = 3
-    net_profit, total_costs = apply_fineco_costs(
-        gross_profit=gross_profit,
-        exposure=exposure,
-        shares=shares,
-        buy_price=buy_price_1,  # non usato direttamente
-        sell_price=sell_price,
-        buy_date=context.ex_date - pd.Timedelta(days=1),
-        sell_date=context.ex_date + pd.Timedelta(days=1 + recovery_days),
-        operations=6,
-        overnight_days_long=recovery_days,  # solo per il terzo long
-        short_exposure=exposure,
-        overnight_days_short=0,  # short chiuso in giornata
-        tobin_tax_applies=True  # per ogni acquisto (3 volte: ma stimiamo 2×)
-    )
+    # Posizione
+    shares = (capital * leverage) / short_entry
+    exposure_short = shares * short_entry
+    exposure_long = shares * long_entry
     
-    # Nota: Tobin tax applicata 3 volte (buy, re-buy, ...) → qui stimiamo 2× in tobin
-    # In realtà, Fineco la calcola per ogni trade di acquisto → per precisione, servirebbe dettaglio
+    # PHASE 1: SHORT (D-1 close → D0 open)
+    short_profit = (short_entry - short_exit) * shares
+    dividend_cost = dividend_amount * shares  # DEVI PAGARE il dividendo quando sei short!
     
-    return StrategyResult(
-        strategy="FLIP & RIDE",
-        net_profit=net_profit,
-        gross_profit=gross_profit,
-        total_costs=total_costs,
-        roi_pct=(net_profit / capital) * 100,
-        recovery_days=1 + recovery_days,
-        shares=shares,
-        exposure=exposure,
-        buy_price=buy_price_1,
-        sell_price=sell_price,
-        buy_date=context.ex_date - pd.Timedelta(days=1),
-        sell_date=context.ex_date + pd.Timedelta(days=1 + recovery_days),
-        details={
-            "profit_phase1": profit1,
-            "profit_phase2": profit2,
-            "profit_phase3": profit3,
-            "gap_vs_div": abs(context.gap - context.dividend_amount)
-        }
-    )
+    # Costi SHORT
+    comm_short_entry = calculate_commission(exposure_short)
+    comm_short_exit = calculate_commission(shares * short_exit)
+    overnight_short = (exposure_short * SHORT_COST_RATE / 365) * 1  # 1 notte
+    
+    phase1_gross = short_profit - dividend_cost
+    phase1_costs = comm_short_entry + comm_short_exit + overnight_short
+    phase1_net = phase1_gross - phase1_costs
+    
+    # PHASE 2: LONG (D0 open → recovery)
+    recovery = find_recovery(df, ex_date, target_price=target_price, max_days=30)
+    
+    if not recovery['recovered']:
+        sell_date = recovery['recovery_date']
+        sell_price = recovery['recovery_price']
+        recovered = False
+    else:
+        sell_date = recovery['recovery_date']
+        sell_price = recovery['recovery_price']
+        recovered = True
+    
+    long_profit = (sell_price - long_entry) * shares
+    
+    # Costi LONG
+    comm_long_entry = calculate_commission(exposure_long)
+    comm_long_exit = calculate_commission(shares * sell_price)
+    tobin_long = exposure_long * TOBIN_TAX_RATE
+    
+    # Overnight: da D0 a sell_date
+    overnight_days_long = (sell_date - ex_date).days
+    overnight_long = (exposure_long * OVERNIGHT_RATE / 365) * overnight_days_long
+    
+    phase2_gross = long_profit
+    phase2_costs = comm_long_entry + comm_long_exit + tobin_long + overnight_long
+    phase2_net = phase2_gross - phase2_costs
+    
+    # TOTALE
+    total_gross = phase1_gross + phase2_gross
+    total_costs = phase1_costs + phase2_costs
+    net_profit = phase1_net + phase2_net
+    roi = (net_profit / capital) * 100
+    
+    return {
+        'strategy': 'SHORT+LONG',
+        'buy_date': d_minus_1,
+        'sell_date': sell_date,
+        'shares': shares,
+        'leverage': leverage,
+        'recovery_days': recovery['recovery_days'],
+        'recovered': recovered,
+        # Phase 1
+        'short_entry': short_entry,
+        'short_exit': short_exit,
+        'phase1_profit': short_profit,
+        'dividend_cost': dividend_cost,
+        'phase1_gross': phase1_gross,
+        'phase1_costs': phase1_costs,
+        'phase1_net': phase1_net,
+        # Phase 2
+        'long_entry': long_entry,
+        'long_exit': sell_price,
+        'phase2_profit': long_profit,
+        'phase2_costs': phase2_costs,
+        'phase2_net': phase2_net,
+        # Total
+        'gross_profit': total_gross,
+        'total_costs': total_costs,
+        'net_profit': net_profit,
+        'roi': roi
+    }
 
 
-# ======= STREAMLIT UI =======
+# ============================================================================
+# STREAMLIT UI
+# ============================================================================
 
-st.title("⚙️ Confronto Strategie")
-st.markdown("Confronto **LONG D-1** vs **LONG D0** vs **FLIP & RIDE** con costi REALI Fineco")
+@st.cache_resource
+def get_database_session():
+    """Get database session"""
+    db_path = Path(__file__).parent.parent.parent / "data" / "dividend_recovery.db"
+    engine = create_engine(f"sqlite:///{db_path}", echo=False)
+    Session = sessionmaker(bind=engine)
+    return Session()
+
+
+st.title("⚙️ Confronto Strategie - VERSIONE CORRETTA")
+st.markdown("""
+Confronto **3 strategie** con **dati storici REALI** e **recovery detection automatico**:
+- **A**: LONG D-1 (con dividendo)
+- **B**: LONG D0 (senza dividendo)
+- **C**: SHORT+LONG (short il gap, long il recovery)
+""")
 
 session = get_database_session()
 
@@ -347,12 +429,21 @@ if not stocks:
     st.warning("⚠️ Nessun titolo nel database")
     st.stop()
 
-stock_options = {f"{s.ticker} - {s.name} ({s.market})": s for s in stocks}
-selected_stock = st.selectbox("Seleziona Titolo", list(stock_options.keys()))
-stock = stock_options[selected_stock]
+stock_options = {f"{s.ticker} - {s.name}": s for s in stocks}
+selected = st.selectbox("Seleziona Titolo", list(stock_options.keys()))
+stock = stock_options[selected]
+
+# Get price data
+df = get_price_dataframe(session, stock.id)
+if df is None:
+    st.error("❌ Nessun dato prezzi per questo titolo")
+    st.stop()
 
 # Dividend selection
-dividends = session.query(Dividend).filter_by(stock_id=stock.id).order_by(Dividend.ex_date.desc()).all()
+dividends = session.query(Dividend).filter_by(stock_id=stock.id).order_by(
+    Dividend.ex_date.desc()
+).all()
+
 if not dividends:
     st.warning(f"⚠️ Nessun dividendo per {stock.ticker}")
     st.stop()
@@ -363,94 +454,120 @@ dividend = div_options[selected_div]
 
 # Parameters
 st.divider()
-col1, col2, col3 = st.columns(3)
+col1, col2 = st.columns(2)
 
 with col1:
     leverage = st.slider("Leverage", min_value=1.0, max_value=10.0, value=3.0, step=0.5)
+
 with col2:
     capital = st.slider("Capitale (€)", min_value=300, max_value=10000, value=2000, step=100)
-with col3:
-    recovery_days_assumption = st.slider("Giorni recovery (assunto)", 1, 10, 3, 1)
 
 # Calculate
-if st.button("🚀 Calcola Strategie", type="primary"):
-    with st.spinner("Calcolo in corso..."):
+if st.button("🚀 Calcola con Dati REALI", type="primary"):
+    with st.spinner("Analisi dati storici in corso..."):
         try:
-            # Ottieni contesto
-            context = get_price_context(session, stock.id, dividend.ex_date, dividend.amount)
-            context.ticker = stock.ticker
-            
-            # Warn se gap ≠ dividendo
-            if abs(context.gap - context.dividend_amount) > 0.02 * context.dividend_amount:
-                st.warning(f"⚠️ Gap ({context.gap:.3f}) ≠ Dividendo ({context.dividend_amount:.3f}) → dati potenzialmente non aggiustati o errati")
-            
-            # Simula
             results = []
             
-            r1 = simulate_long_d1(context, capital, leverage)
-            results.append(r1)
-            
-            r2 = simulate_long_d0(context, capital, leverage)
-            results.append(r2)
-            
-            # Solo se c'è D+1
-            if context.d_plus_1_open is not None:
-                r3 = simulate_flip_ride(context, capital, leverage)
-                results.append(r3)
+            # Strategia A
+            r_a = strategy_long_with_dividend(df, dividend.ex_date, dividend.amount, leverage, capital)
+            if 'error' not in r_a:
+                results.append(r_a)
             else:
-                st.info("ℹ️ FLIP & RIDE non disponibile (mancano dati D+1)")
+                st.error(f"Strategia A: {r_a['error']}")
             
-            # Mostra risultati
-            st.success("✅ Calcolo completato!")
+            # Strategia B
+            r_b = strategy_long_without_dividend(df, dividend.ex_date, dividend.amount, leverage, capital)
+            if 'error' not in r_b:
+                results.append(r_b)
+            else:
+                st.error(f"Strategia B: {r_b['error']}")
+            
+            # Strategia C
+            r_c = strategy_short_long(df, dividend.ex_date, dividend.amount, leverage, capital)
+            if 'error' not in r_c:
+                results.append(r_c)
+            else:
+                st.error(f"Strategia C: {r_c['error']}")
+            
+            if not results:
+                st.error("❌ Nessuna strategia calcolabile")
+                st.stop()
+            
+            st.success("✅ Analisi completata con dati storici REALI!")
             
             # Tabella comparativa
             st.subheader("📊 Risultati Comparativi")
+            
             comparison = pd.DataFrame([{
-                'Strategia': r.strategy,
-                'ROI %': f"{r.roi_pct:.2f}%",
-                'Profit (€)': f"€{r.net_profit:.2f}",
-                'Costi (€)': f"€{r.total_costs:.2f}",
-                'Giorni': r.recovery_days,
-                'Posizione': f"{r.shares:.1f} azioni",
-                'Exposure': f"€{r.exposure:.0f}"
+                'Strategia': r['strategy'],
+                'ROI %': f"{r['roi']:.2f}%",
+                'Net Profit': f"€{r['net_profit']:.2f}",
+                'Gross Profit': f"€{r['gross_profit']:.2f}",
+                'Costi Totali': f"€{r['total_costs']:.2f}",
+                'Recovery Days': r['recovery_days'] if r['recovered'] else f"{r['recovery_days']}*",
+                'Recovered': '✅' if r['recovered'] else '❌'
             } for r in results])
+            
             st.dataframe(comparison, use_container_width=True, hide_index=True)
             
-            # Dettaglio espandibile
+            if not all(r['recovered'] for r in results):
+                st.warning("⚠️ * = Non ha recuperato entro 30 giorni (vendita forzata)")
+            
+            # Dettaglio per strategia
             st.divider()
-            st.subheader("📋 Dettaglio per Strategia")
+            st.subheader("📋 Dettaglio Strategie")
+            
             for r in results:
-                with st.expander(f"**{r.strategy}** — ROI: {r.roi_pct:.2f}% | Net: €{r.net_profit:.2f}"):
-                    c1, c2, c3 = st.columns(3)
-                    with c1:
-                        st.metric("Gross Profit", f"€{r.gross_profit:.2f}")
-                        st.metric("Net Profit", f"€{r.net_profit:.2f}")
-                    with c2:
-                        st.metric("Costi Totali", f"€{r.total_costs:.2f}")
-                        st.metric("Recovery Days", r.recovery_days)
-                    with c3:
-                        st.metric("Buy Price", f"€{r.buy_price:.3f}")
-                        st.metric("Sell Price", f"€{r.sell_price:.3f}")
+                with st.expander(f"**{r['strategy']}** - ROI: {r['roi']:.2f}% | Net: €{r['net_profit']:.2f}"):
                     
-                    if 'dividend_income' in r.details:
-                        st.metric("Dividend Income", f"€{r.details['dividend_income']:.2f}")
-                    if 'profit_phase1' in r.details:
-                        st.info(f"Phase 1 (Long): €{r.details['profit_phase1']:.2f}")
-                        st.info(f"Phase 2 (Short): €{r.details['profit_phase2']:.2f}")
-                        st.info(f"Phase 3 (Recovery): €{r.details['profit_phase3']:.2f}")
+                    col1, col2, col3 = st.columns(3)
+                    
+                    with col1:
+                        st.metric("Buy Date", r['buy_date'].strftime('%Y-%m-%d'))
+                        if 'buy_price' in r:
+                            st.metric("Buy Price", f"€{r['buy_price']:.3f}")
+                        st.metric("Shares", f"{r['shares']:.2f}")
+                        
+                    with col2:
+                        st.metric("Sell Date", r['sell_date'].strftime('%Y-%m-%d'))
+                        if 'sell_price' in r:
+                            st.metric("Sell Price", f"€{r['sell_price']:.3f}")
+                        st.metric("Recovery Days", r['recovery_days'])
+                        
+                    with col3:
+                        st.metric("Gross Profit", f"€{r['gross_profit']:.2f}")
+                        st.metric("Total Costs", f"€{r['total_costs']:.2f}")
+                        st.metric("Net Profit", f"€{r['net_profit']:.2f}")
+                    
+                    # Breakdown costi
+                    st.markdown("**Breakdown Costi:**")
+                    if 'comm_buy' in r:
+                        st.write(f"- Commissione buy: €{r['comm_buy']:.2f}")
+                        st.write(f"- Commissione sell: €{r['comm_sell']:.2f}")
+                        st.write(f"- Tobin tax: €{r['tobin_tax']:.2f}")
+                        st.write(f"- Overnight cost: €{r['overnight_cost']:.2f}")
+                    
+                    # Short+Long specifics
+                    if 'phase1_net' in r:
+                        st.markdown("**Phase 1 (SHORT):**")
+                        st.write(f"- Short profit: €{r['phase1_profit']:.2f}")
+                        st.write(f"- Dividend COST: -€{r['dividend_cost']:.2f}")
+                        st.write(f"- Phase 1 costs: €{r['phase1_costs']:.2f}")
+                        st.write(f"- **Phase 1 net: €{r['phase1_net']:.2f}**")
+                        
+                        st.markdown("**Phase 2 (LONG):**")
+                        st.write(f"- Long profit: €{r['phase2_profit']:.2f}")
+                        st.write(f"- Phase 2 costs: €{r['phase2_costs']:.2f}")
+                        st.write(f"- **Phase 2 net: €{r['phase2_net']:.2f}**")
+                    
+                    # Dividend income
+                    if 'dividend_income' in r and r['dividend_income'] > 0:
+                        st.success(f"💰 Dividend income: €{r['dividend_income']:.2f}")
         
         except Exception as e:
             st.error(f"❌ Errore: {str(e)}")
-            st.code(str(e), language="python")
+            import traceback
+            st.code(traceback.format_exc())
 
 st.divider()
-st.caption("""
-📊 **Assunzioni**:  
-- Recovery in {recovery_days_assumption} giorni (da personalizzare con dati storici)  
-- Overnight: calcolato solo per posizioni aperte a fine giornata  
-- FLIP & RIDE richiede dati fino a D+1  
-💡 Prossimo step: integrazione con dati reali di recovery time
-""".format(recovery_days_assumption=recovery_days_assumption))
-
-# Footer
-st.markdown("⚙️ *Fineco Conto Trading: Comm 0.19% (min €2.95), Tobin 0.1%, Overnight ~10.5%*")
+st.caption("💡 Recovery detection automatico su dati storici REALI | Costi Fineco: Comm 0.19%, Tobin 0.1%, Overnight ~10.5%")
