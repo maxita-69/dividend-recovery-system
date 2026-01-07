@@ -41,3 +41,6 @@ python-dateutil>=2.8.0
 
 # Tipi/dataclass (usati esplicitamente)
 typing-extensions>=4.8.0
+
+#grafici con linea di tendenza
+statsmodels
