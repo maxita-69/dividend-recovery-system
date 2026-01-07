@@ -27,4 +27,4 @@ st.markdown("""
 **Status**: v0.2 - Coming soon
 """)
 
-st.page_link("pages/3_⚙️_Strategy_Comparison.py", label="➡️ Nel frattempo, prova Strategy Comparison", icon="⚙️")
+st.page_link("pages/3_Strategy_Comparison.py", label="➡️ Nel frattempo, prova Strategy Comparison", icon="⚙️")
