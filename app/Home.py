@@ -201,13 +201,13 @@ try:
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.page_link("pages/1_📊_Single_Stock.py", label="📊 Analisi Singolo Titolo", icon="📊")
+        st.page_link("pages/1_Single_Stock.py", label="📊 Analisi Singolo Titolo", icon="📊")
     
     with col2:
-        st.page_link("pages/2_📈_Recovery_Analysis.py", label="📈 Recovery Analysis", icon="📈")
+        st.page_link("pages/2_Recovery_Analysis.py", label="📈 Recovery Analysis", icon="📈")
     
     with col3:
-        st.page_link("pages/3_⚙️_Strategy_Comparison.py", label="⚙️ Confronto Strategie", icon="⚙️")
+        st.page_link("pages/3_Strategy_Comparison.py", label="⚙️ Confronto Strategie", icon="⚙️")
 
 except Exception as e:
     st.error(f"❌ Errore durante il caricamento: {str(e)}")
