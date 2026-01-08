@@ -68,7 +68,8 @@ def check_authentication():
     authenticator = stauth.Authenticate(
         credentials=credentials,
         cookie_name=cookie_name,
-        key=cookie_key,
+        # key=cookie_key,
+        signature_key=cookie_key,
         cookie_expiry_days=cookie_expiry_days
     )
 
