@@ -204,7 +204,7 @@ if df is None:
     st.stop()
 
 dividends = session.query(Dividend).filter_by(stock_id=stock.id).order_by(
-    Dividend.ex_date
+    Dividend.ex_date.desc()
 ).all()
 
 if not dividends:
@@ -551,62 +551,81 @@ st.info("""
 # STEP 2: Aggiungi grafico a linee evolution
 st.markdown("### 📈 Grafico Andamento Recovery")
 
-fig = go.Figure()
+# Selezione dividendi per il grafico (default: 4 più recenti)
+available_dates = [pd.to_datetime(d).strftime('%Y-%m-%d') for d in evolution_df['ex_date'].tolist()]
+default_dates = available_dates[:4] if len(available_dates) >= 4 else available_dates
 
-# Una linea per ogni dividendo
-for idx, row in evolution_df.iterrows():
-    ex_date_str = pd.to_datetime(row['ex_date']).strftime('%Y-%m-%d')
-
-    # Estrai % per ogni checkpoint
-    y_values = []
-    x_values = []
-
-    for days in checkpoints:
-        pct_val = row.get(f'd_plus_{days}_pct')
-        if pd.notna(pct_val):
-            y_values.append(pct_val)
-            x_values.append(f'D+{days}')
-
-    if y_values:  # Solo se ha almeno un dato
-        fig.add_trace(go.Scatter(
-            x=x_values,
-            y=y_values,
-            mode='lines+markers',
-            name=f"{ex_date_str}",
-            hovertemplate='<b>%{fullData.name}</b><br>%{x}: %{y:.1f}%<extra></extra>',
-            line=dict(width=2),
-            marker=dict(size=8)
-        ))
-
-# Linea orizzontale a Y=0 (riferimento D-1 close)
-fig.add_hline(
-    y=0,
-    line_dash="dash",
-    line_color="gray",
-    line_width=2,
-    annotation_text="D-1 Close (target)",
-    annotation_position="right"
+selected_dates = st.multiselect(
+    "Seleziona dividendi da visualizzare:",
+    options=available_dates,
+    default=default_dates,
+    help="Di default sono mostrati i 4 dividendi più recenti. Puoi aggiungerne o rimuoverne altri dalla lista."
 )
 
-fig.update_layout(
-    title="Andamento % Recovery Post-Dividendo",
-    xaxis_title="Checkpoint Temporale",
-    yaxis_title="Variazione % vs D-1 Close",
-    hovermode='closest',
-    height=600,
-    legend=dict(
-        title="Ex-Date",
-        orientation="v",
-        yanchor="top",
-        y=0.99,
-        xanchor="left",
-        x=1.02
+if not selected_dates:
+    st.warning("⚠️ Seleziona almeno un dividendo per visualizzare il grafico")
+else:
+    # Filtra evolution_df per le date selezionate
+    filtered_evolution_df = evolution_df[
+        evolution_df['ex_date'].isin([pd.Timestamp(d) for d in selected_dates])
+    ]
+
+    fig = go.Figure()
+
+    # Una linea per ogni dividendo selezionato
+    for idx, row in filtered_evolution_df.iterrows():
+        ex_date_str = pd.to_datetime(row['ex_date']).strftime('%Y-%m-%d')
+
+        # Estrai % per ogni checkpoint
+        y_values = []
+        x_values = []
+
+        for days in checkpoints:
+            pct_val = row.get(f'd_plus_{days}_pct')
+            if pd.notna(pct_val):
+                y_values.append(pct_val)
+                x_values.append(f'D+{days}')
+
+        if y_values:  # Solo se ha almeno un dato
+            fig.add_trace(go.Scatter(
+                x=x_values,
+                y=y_values,
+                mode='lines+markers',
+                name=f"{ex_date_str}",
+                hovertemplate='<b>%{fullData.name}</b><br>%{x}: %{y:.1f}%<extra></extra>',
+                line=dict(width=2),
+                marker=dict(size=8)
+            ))
+
+    # Linea orizzontale a Y=0 (riferimento D-1 close)
+    fig.add_hline(
+        y=0,
+        line_dash="dash",
+        line_color="gray",
+        line_width=2,
+        annotation_text="D-1 Close (target)",
+        annotation_position="right"
     )
-)
 
-st.plotly_chart(fig, use_container_width=True)
+    fig.update_layout(
+        title="Andamento % Recovery Post-Dividendo",
+        xaxis_title="Checkpoint Temporale",
+        yaxis_title="Variazione % vs D-1 Close",
+        hovermode='closest',
+        height=600,
+        legend=dict(
+            title="Ex-Date",
+            orientation="v",
+            yanchor="top",
+            y=0.99,
+            xanchor="left",
+            x=1.02
+        )
+    )
 
-st.caption("""
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.caption("""
 💡 **Interpretazione grafico:**
 - Linee sopra 0 = prezzo sopra D-1 (recuperato)
 - Linee sotto 0 = prezzo sotto D-1 (non ancora recuperato)
