@@ -239,4 +239,11 @@ def main():
     
     print(f"\n📊 DATABASE SUMMARY:")
     print(f"   Stocks: {n_stocks}")
-    print(f"   Price records
+    print(f"   Price records: {n_prices}")
+    print(f"   Dividend records: {n_dividends}")
+    
+    session.close()
+
+
+if __name__ == '__main__':
+    main()
