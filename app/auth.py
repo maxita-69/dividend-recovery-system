@@ -29,15 +29,15 @@ def check_authentication():
         for username, user_data in st.secrets["credentials"]["usernames"].items():
             credentials['usernames'][username] = {
                 'name': user_data['name'],
-                'password': user_data['password']
-                'email': user_data.get('email', f"{username}@example.com")  # fallback sicuro
+                'password': user_data['password'],
+                'email': user_data.get('email', f"{username}@example.com")
             }
 
         cookie_name = st.secrets.get("cookie_name", "dividend_recovery_auth")
         cookie_key = st.secrets.get("cookie_key", "default_key")
         cookie_expiry_days = st.secrets.get("cookie_expiry_days", 30)
 
-    except (KeyError, FileNotFoundError, AttributeError) as e:
+    except (KeyError, FileNotFoundError, AttributeError):
         st.error("""
         ⚠️ **Configurazione autenticazione mancante!**
 
@@ -53,19 +53,18 @@ def check_authentication():
         Crea il file `.streamlit/secrets.toml` con le credenziali.
         """)
         st.code("""
-        # Esempio secrets.toml
-        [credentials]
-          [credentials.usernames.maxdany]
-          name = "Max Dany"
-          password = "$2b$12$..."
+[credentials]
+  [credentials.usernames.maxdany]
+  name = "Max Dany"
+  password = "$2b$12$..."
 
-        cookie_name = "dividend_recovery_auth"
-        cookie_key = "746d6fa00a..."
-        cookie_expiry_days = 30
+cookie_name = "dividend_recovery_auth"
+cookie_key = "746d6fa00a..."
+cookie_expiry_days = 30
         """, language="toml")
         st.stop()
 
-    # Crea authenticator (API v0.3.3 usa parametri posizionali)
+    # Crea authenticator (v0.3.3 usa parametri posizionali)
     authenticator = stauth.Authenticate(
         credentials,
         cookie_name,
@@ -73,7 +72,7 @@ def check_authentication():
         cookie_expiry_days
     )
 
-    # Mostra form di login (API v0.3.x)
+    # Mostra form di login
     authenticator.login(location='main')
 
     # Ottieni stato autenticazione da session_state
