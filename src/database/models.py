@@ -33,9 +33,9 @@ class Stock(Base):
 
 
 class Dividend(Base):
-    """Dividend table - Dividendi storici"""
+    """Dividend table - Dividendi storici e predetti"""
     __tablename__ = 'dividends'
-    
+
     id = Column(Integer, primary_key=True)
     stock_id = Column(Integer, ForeignKey('stocks.id'), nullable=False, index=True)
     ex_date = Column(Date, nullable=False, index=True)
@@ -45,12 +45,17 @@ class Dividend(Base):
     currency = Column(String(10), default='EUR')
     dividend_type = Column(String(50))  # ordinary, extraordinary, special
     created_at = Column(DateTime, default=datetime.utcnow)
-    
+
+    # Prediction fields
+    status = Column(String(20), default='CONFIRMED')  # CONFIRMED, PREDICTED, PAID
+    confidence = Column(Float, default=1.0)  # 0.0 - 1.0
+    prediction_source = Column(String(50))  # IBKR, HISTORICAL_PATTERN, MANUAL, HISTORICAL
+
     # Relationships
     stock = relationship('Stock', back_populates='dividends')
-    
+
     def __repr__(self):
-        return f"<Dividend(ticker='{self.stock.ticker}', ex_date='{self.ex_date}', amount={self.amount})>"
+        return f"<Dividend(ticker='{self.stock.ticker}', ex_date='{self.ex_date}', amount={self.amount}, status='{self.status}')>"
 
 
 class PriceData(Base):
