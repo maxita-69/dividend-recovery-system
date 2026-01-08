@@ -23,6 +23,14 @@ st.set_page_config(
     layout="wide"
 )
 
+# ============================================================================
+# AUTHENTICATION - Must be after set_page_config
+# ============================================================================
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from auth import require_authentication
+
+require_authentication()
+
 
 # ============================================================================
 # FUNZIONI CORE
