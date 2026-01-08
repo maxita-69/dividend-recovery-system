@@ -30,6 +30,7 @@ def check_authentication():
             credentials['usernames'][username] = {
                 'name': user_data['name'],
                 'password': user_data['password']
+                'email': user_data.get('email', f"{username}@example.com")  # fallback sicuro
             }
 
         cookie_name = st.secrets.get("cookie_name", "dividend_recovery_auth")
