@@ -232,7 +232,42 @@ def main():
     "PRY.MI",       # Prysmian
     "RACE.MI",      # Ferrari
     "LDO.MI",       # Leonardo
-    "IP.MI"         # Interpump Group
+    "IP.MI",        # Interpump Group
+
+    # --- TITOLI USA (Dividend Aristocrats & High Quality) ---
+    # Healthcare & Consumer Staples
+    "JNJ",          # Johnson & Johnson - Dividend Aristocrat
+    "PG",           # Procter & Gamble - Dividend Aristocrat
+    "KO",           # Coca-Cola - Dividend Aristocrat
+    "PEP",          # PepsiCo - Dividend Aristocrat
+    "MCD",          # McDonald's - Dividend Aristocrat
+
+    # Energy
+    "XOM",          # Exxon Mobil - Dividend Aristocrat
+    "CVX",          # Chevron - Dividend Aristocrat
+
+    # Retail
+    "WMT",          # Walmart - Dividend Aristocrat
+    "TGT",          # Target - Dividend Aristocrat
+    "HD",           # Home Depot
+
+    # Telecom (High Yield)
+    "T",            # AT&T - High yield
+    "VZ",           # Verizon - Stable dividend
+
+    # Pharma
+    "ABBV",         # AbbVie - High yield
+    "PFE",          # Pfizer
+
+    # Financials
+    "JPM",          # JP Morgan Chase
+    "BAC",          # Bank of America
+
+    # Technology (Dividend Payers)
+    "MSFT",         # Microsoft
+    "AAPL",         # Apple
+    "INTC",         # Intel
+    "IBM",          # IBM - Long dividend history
 ]
 
 
