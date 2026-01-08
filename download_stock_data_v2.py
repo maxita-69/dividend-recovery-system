@@ -192,8 +192,49 @@ def main():
 
     # Inserisci qui la tua lista completa di ticker
     tickers = [
-        # ...
-    ]
+    # --- TITOLI ITALIANI ---
+    "BMPS.MI",      # Banca MPS
+    "MB.MI",        # Mediobanca
+    "BAMI.MI",      # Banco BPM
+    "INW.MI",       # Inwit
+    "BPSO.MI",      # Banca Popolare di Sondrio
+    "ENI.MI",       # Eni
+    "ISP.MI",       # Intesa Sanpaolo
+    "SPM.MI",       # Saipem
+    "NEXI.MI",      # Nexi
+    "BPE.MI",       # BPER Banca
+    "PST.MI",       # Poste Italiane
+    "BMED.MI",      # Banca Mediolanum
+    "ENEL.MI",      # Enel
+    "TEN.MI",       # Tenaris
+    "SRG.MI",       # Snam
+    "UNI.MI",       # Unipol Gruppo
+    "AZM.MI",       # Azimut
+    "UCG.MI",       # UniCredit
+    "G.MI",         # Generali Assicurazioni
+    "TRN.MI",       # Terna
+    "A2A.MI",       # A2A
+    "IG.MI",        # Italgas
+    "HER.MI",       # Hera
+    "FBK.MI",       # FinecoBank
+    "REC.MI",       # Recordati
+    "STLAM.MI",     # Stellantis
+    "MONC.MI",      # Moncler
+    "IVG.MI",       # Iveco Group
+    "AMP.MI",       # Amplifon
+    "TIT.MI",       # Telecom Italia
+    "LTMC.MI",      # Lottomatica
+    "DIA.MI",       # Diasorin
+    "BZU.MI",       # Buzzi
+    "STM.MI",       # STMicroelectronics
+    "CPR.MI",       # Campari
+    "BC.MI",        # Brunello Cucinelli
+    "PRY.MI",       # Prysmian
+    "RACE.MI",      # Ferrari
+    "LDO.MI",       # Leonardo
+    "IP.MI"         # Interpump Group
+]
+
 
     for ticker in tickers:
         print(f"\n🔍 Checking existing data for {ticker}...")
