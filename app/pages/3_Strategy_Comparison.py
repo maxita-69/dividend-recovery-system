@@ -31,22 +31,131 @@ from auth import require_authentication
 require_authentication()
 
 # ============================================================================
-# COSTI FINECO CONTO TRADING
+# CONFIGURAZIONI BROKER
 # ============================================================================
-COMMISSION_RATE = 0.0019      # 0.19%
-COMMISSION_MIN = 2.95         # €
-COMMISSION_MAX = 19.0         # €
-TOBIN_TAX_RATE = 0.001        # 0.1% solo su acquisto
-EURIBOR_1M = 0.025            # 2.5% (aggiornare periodicamente)
-OVERNIGHT_SPREAD = 0.0799     # 7.99%
-OVERNIGHT_RATE = EURIBOR_1M + OVERNIGHT_SPREAD  # ~10.5% annuo
-SHORT_COST_RATE = 0.0695      # 6.95% annuo
+
+# Configurazione Fineco - Conto Trading
+FINECO_CONFIG = {
+    'name': 'Fineco (Italia)',
+    'market': 'Italia',
+    'commission_rate': 0.0019,       # 0.19%
+    'commission_min': 2.95,          # €
+    'commission_max': 19.0,          # €
+    'tobin_tax_rate': 0.001,         # 0.1% solo su acquisto
+    'tobin_tax_on_sell': False,      # Tobin tax NON si paga in vendita
+    'stamp_duty_rate': 0.0,          # Nessuna stamp duty
+    'stamp_duty_on_sell': False,
+    'euribor_1m': 0.025,             # 2.5% (aggiornare periodicamente)
+    'overnight_spread': 0.0799,      # 7.99%
+    'overnight_rate': 0.025 + 0.0799,  # ~10.5% annuo
+    'short_cost_rate': 0.0695,       # 6.95% annuo
+    'max_leverage': 5.0               # Leverage massimo 5x
+}
+
+# Configurazione Interactive Brokers - Italia
+IB_ITALIA_CONFIG = {
+    'name': 'Interactive Brokers (Italia)',
+    'market': 'Italia',
+    'commission_rate': 0.0005,       # 0.05%
+    'commission_min': 3.0,           # €3.00
+    'commission_max': None,          # Nessun massimale
+    'tobin_tax_rate': 0.001,         # 0.1% (Tobin Tax italiana)
+    'tobin_tax_on_sell': True,       # Tobin tax SI PAGA anche in vendita
+    'stamp_duty_rate': 0.0,          # Nessuna stamp duty
+    'stamp_duty_on_sell': False,
+    'euribor_1m': 0.025,             # 2.5%
+    'overnight_spread': 0.025,       # ~2.5% spread IB
+    'overnight_rate': 0.05,          # ~5% annuo totale
+    'short_cost_rate': 0.05,         # ~5% annuo per short
+    'max_leverage': 2.0               # Leverage massimo 2x overnight
+}
+
+# Configurazione Interactive Brokers - USA (NYSE, NASDAQ, ecc.)
+IB_USA_CONFIG = {
+    'name': 'Interactive Brokers (USA)',
+    'market': 'USA',
+    'commission_per_share': 0.005,   # $0.005 per share (~€0.0046)
+    'commission_rate': 0.0005,       # Fallback percentuale se necessario
+    'commission_min': 1.0,           # $1.00 (~€0.92)
+    'commission_max_pct': 0.01,      # Max 1% of trade value
+    'commission_max': None,
+    'tobin_tax_rate': 0.0,           # Nessuna Tobin tax USA
+    'tobin_tax_on_sell': False,
+    'stamp_duty_rate': 0.0,          # Nessuna stamp duty USA
+    'stamp_duty_on_sell': False,
+    'euribor_1m': 0.025,
+    'overnight_spread': 0.025,
+    'overnight_rate': 0.05,          # ~5% annuo
+    'short_cost_rate': 0.05,
+    'max_leverage': 2.0
+}
+
+# Configurazione Interactive Brokers - UK (LSE)
+IB_UK_CONFIG = {
+    'name': 'Interactive Brokers (UK)',
+    'market': 'UK',
+    'commission_flat': 3.0,          # £3 flat (~€3.50)
+    'commission_flat_threshold': 6000.0,  # Fino a £6000 trade value
+    'commission_rate': 0.0005,       # 0.05% sopra £6000
+    'commission_min': 3.0,
+    'commission_max': None,
+    'tobin_tax_rate': 0.0,           # No Tobin tax UK
+    'tobin_tax_on_sell': False,
+    'stamp_duty_rate': 0.005,        # 0.5% UK Stamp Duty
+    'stamp_duty_on_sell': False,     # Solo su acquisto
+    'euribor_1m': 0.025,
+    'overnight_spread': 0.025,
+    'overnight_rate': 0.05,
+    'short_cost_rate': 0.05,
+    'max_leverage': 2.0
+}
+
+BROKER_CONFIGS = {
+    'Fineco (Italia)': FINECO_CONFIG,
+    'Interactive Brokers - Italia': IB_ITALIA_CONFIG,
+    'Interactive Brokers - USA': IB_USA_CONFIG,
+    'Interactive Brokers - UK': IB_UK_CONFIG
+}
 
 
-def calculate_commission(controvalore):
-    """Calcola commissione Fineco: 0.19% (min €2.95, max €19)"""
-    comm = controvalore * COMMISSION_RATE
-    return max(COMMISSION_MIN, min(comm, COMMISSION_MAX))
+def calculate_commission(controvalore, broker_config):
+    """
+    Calcola commissione in base al broker e mercato selezionato
+
+    Args:
+        controvalore: Valore della transazione in EUR
+        broker_config: Dizionario configurazione broker
+
+    Returns:
+        Commissione in EUR
+    """
+    market = broker_config.get('market', 'Italia')
+
+    # UK: flat £3 fino a £6000, poi 0.05%
+    if market == 'UK':
+        flat_threshold = broker_config.get('commission_flat_threshold', 6000.0)
+        if controvalore <= flat_threshold:
+            return broker_config.get('commission_flat', 3.0)
+        else:
+            return controvalore * broker_config['commission_rate']
+
+    # USA: approssimazione con 0.05% (in realtà $0.005/share, ma senza share count usiamo %)
+    # Min $1.00, max 1% of trade value
+    if market == 'USA':
+        comm = controvalore * broker_config['commission_rate']
+        comm = max(broker_config['commission_min'], comm)
+        max_pct = broker_config.get('commission_max_pct', 0.01)
+        comm = min(comm, controvalore * max_pct)
+        return comm
+
+    # Italia e altri: percentuale standard con min/max
+    comm = controvalore * broker_config['commission_rate']
+    comm = max(broker_config['commission_min'], comm)
+
+    if broker_config['commission_max'] is not None:
+        comm = min(comm, broker_config['commission_max'])
+
+    return comm
 
 
 # ============================================================================
@@ -134,30 +243,30 @@ def find_recovery(df, start_date, target_price, max_days=30):
 # STRATEGIA A: LONG CON DIVIDENDO
 # ============================================================================
 
-def strategy_long_with_dividend(df, ex_date, dividend_amount, leverage, capital):
+def strategy_long_with_dividend(df, ex_date, dividend_amount, leverage, capital, broker_config):
     """
     STRATEGIA A: Compra D-1 close, incassa dividendo, vende al recovery
-    
+
     Entry: D-1 alle 17:25 (approssimato con close)
     Exit: Primo giorno con close >= D-1 close
     """
     ex_date = pd.Timestamp(ex_date)
-    
+
     # Trova D-1
     dates_before = df[df.index < ex_date]
     if dates_before.empty:
         return {'error': 'Nessun dato prima dello stacco'}
-    
+
     d_minus_1 = dates_before.index[-1]
     buy_price = df.loc[d_minus_1, 'close']
-    
+
     # Calcola posizione
     shares = (capital * leverage) / buy_price
     exposure = shares * buy_price
-    
+
     # Cerca recovery (da D0 in poi)
     recovery = find_recovery(df, ex_date, target_price=buy_price, max_days=30)
-    
+
     if not recovery['recovered']:
         # Non ha recuperato: vendi comunque all'ultimo giorno
         sell_date = recovery['recovery_date']
@@ -167,25 +276,32 @@ def strategy_long_with_dividend(df, ex_date, dividend_amount, leverage, capital)
         sell_date = recovery['recovery_date']
         sell_price = recovery['recovery_price']
         recovered = True
-    
+
     # P&L
     price_gain = (sell_price - buy_price) * shares
     dividend_income = dividend_amount * shares
     gross_profit = price_gain + dividend_income
-    
+
     # COSTI
     # 1. Commissioni: buy + sell
-    comm_buy = calculate_commission(exposure)
-    comm_sell = calculate_commission(shares * sell_price)
-    
-    # 2. Tobin tax: solo su acquisto
-    tobin = exposure * TOBIN_TAX_RATE
-    
-    # 3. Overnight: da D-1 a sell_date
+    comm_buy = calculate_commission(exposure, broker_config)
+    comm_sell = calculate_commission(shares * sell_price, broker_config)
+
+    # 2. Tobin tax (Italia)
+    tobin_buy = exposure * broker_config['tobin_tax_rate']
+    tobin_sell = (shares * sell_price * broker_config['tobin_tax_rate']) if broker_config['tobin_tax_on_sell'] else 0.0
+    tobin = tobin_buy + tobin_sell
+
+    # 3. Stamp Duty (UK)
+    stamp_duty_buy = exposure * broker_config.get('stamp_duty_rate', 0.0)
+    stamp_duty_sell = (shares * sell_price * broker_config.get('stamp_duty_rate', 0.0)) if broker_config.get('stamp_duty_on_sell', False) else 0.0
+    stamp_duty = stamp_duty_buy + stamp_duty_sell
+
+    # 4. Overnight: da D-1 a sell_date
     overnight_days = (sell_date - d_minus_1).days
-    overnight_cost = (exposure * OVERNIGHT_RATE / 365) * overnight_days
-    
-    total_costs = comm_buy + comm_sell + tobin + overnight_cost
+    overnight_cost = (exposure * broker_config['overnight_rate'] / 365) * overnight_days
+
+    total_costs = comm_buy + comm_sell + tobin + stamp_duty + overnight_cost
     net_profit = gross_profit - total_costs
     roi = (net_profit / capital) * 100
     
@@ -206,6 +322,7 @@ def strategy_long_with_dividend(df, ex_date, dividend_amount, leverage, capital)
         'comm_buy': comm_buy,
         'comm_sell': comm_sell,
         'tobin_tax': tobin,
+        'stamp_duty': stamp_duty,
         'overnight_cost': overnight_cost,
         'total_costs': total_costs,
         'net_profit': net_profit,
@@ -217,36 +334,36 @@ def strategy_long_with_dividend(df, ex_date, dividend_amount, leverage, capital)
 # STRATEGIA B: LONG SENZA DIVIDENDO
 # ============================================================================
 
-def strategy_long_without_dividend(df, ex_date, dividend_amount, leverage, capital):
+def strategy_long_without_dividend(df, ex_date, dividend_amount, leverage, capital, broker_config):
     """
     STRATEGIA B: Compra D0 open, NO dividendo, vende al recovery
-    
+
     Entry: D0 alle 09:05 (approssimato con open)
     Exit: Primo giorno con close >= D-1 close (stesso target di A!)
     """
     ex_date = pd.Timestamp(ex_date)
-    
+
     # Trova D-1 close (target recovery)
     dates_before = df[df.index < ex_date]
     if dates_before.empty:
         return {'error': 'Nessun dato prima dello stacco'}
-    
+
     d_minus_1 = dates_before.index[-1]
     target_price = df.loc[d_minus_1, 'close']
-    
+
     # Entry: D0 open
     if ex_date not in df.index:
         return {'error': 'Ex-date non presente nei dati'}
-    
+
     buy_price = df.loc[ex_date, 'open']
-    
+
     # Calcola posizione
     shares = (capital * leverage) / buy_price
     exposure = shares * buy_price
-    
+
     # Cerca recovery (da D0 in poi, stesso target di A)
     recovery = find_recovery(df, ex_date, target_price=target_price, max_days=30)
-    
+
     if not recovery['recovered']:
         sell_date = recovery['recovery_date']
         sell_price = recovery['recovery_price']
@@ -255,22 +372,31 @@ def strategy_long_without_dividend(df, ex_date, dividend_amount, leverage, capit
         sell_date = recovery['recovery_date']
         sell_price = recovery['recovery_price']
         recovered = True
-    
+
     # P&L
     price_gain = (sell_price - buy_price) * shares
     dividend_income = 0.0  # NO dividendo
     gross_profit = price_gain
-    
+
     # COSTI
-    comm_buy = calculate_commission(exposure)
-    comm_sell = calculate_commission(shares * sell_price)
-    tobin = exposure * TOBIN_TAX_RATE
-    
+    comm_buy = calculate_commission(exposure, broker_config)
+    comm_sell = calculate_commission(shares * sell_price, broker_config)
+
+    # Tobin tax (Italia)
+    tobin_buy = exposure * broker_config['tobin_tax_rate']
+    tobin_sell = (shares * sell_price * broker_config['tobin_tax_rate']) if broker_config['tobin_tax_on_sell'] else 0.0
+    tobin = tobin_buy + tobin_sell
+
+    # Stamp Duty (UK)
+    stamp_duty_buy = exposure * broker_config.get('stamp_duty_rate', 0.0)
+    stamp_duty_sell = (shares * sell_price * broker_config.get('stamp_duty_rate', 0.0)) if broker_config.get('stamp_duty_on_sell', False) else 0.0
+    stamp_duty = stamp_duty_buy + stamp_duty_sell
+
     # Overnight: da D0 a sell_date
     overnight_days = (sell_date - ex_date).days
-    overnight_cost = (exposure * OVERNIGHT_RATE / 365) * overnight_days
-    
-    total_costs = comm_buy + comm_sell + tobin + overnight_cost
+    overnight_cost = (exposure * broker_config['overnight_rate'] / 365) * overnight_days
+
+    total_costs = comm_buy + comm_sell + tobin + stamp_duty + overnight_cost
     net_profit = gross_profit - total_costs
     roi = (net_profit / capital) * 100
     
@@ -292,6 +418,7 @@ def strategy_long_without_dividend(df, ex_date, dividend_amount, leverage, capit
         'comm_buy': comm_buy,
         'comm_sell': comm_sell,
         'tobin_tax': tobin,
+        'stamp_duty': stamp_duty,
         'overnight_cost': overnight_cost,
         'total_costs': total_costs,
         'net_profit': net_profit,
@@ -318,8 +445,61 @@ Confronto **2 strategie** con **dati storici REALI** e **recovery detection auto
 - **Strategia A**: LONG D-1 (con dividendo) - Compra giorno prima, incassa dividendo
 - **Strategia B**: LONG D0 (senza dividendo) - Compra giorno stacco, prezzo già scontato
 
-🎯 **Obiettivo**: Verificare quale strategia rende di più al netto dei costi Fineco
+🎯 **Obiettivo**: Verificare quale strategia rende di più al netto dei costi del broker scelto
 """)
+
+# ============================================================================
+# SELEZIONE BROKER
+# ============================================================================
+
+st.divider()
+st.subheader("🏦 Selezione Broker")
+
+broker_name = st.selectbox(
+    "Seleziona il tuo broker:",
+    options=list(BROKER_CONFIGS.keys()),
+    help="Ogni broker ha commissioni, spread e margini diversi. Seleziona il tuo per calcoli accurati."
+)
+
+broker_config = BROKER_CONFIGS[broker_name]
+
+# Mostra info broker
+with st.expander(f"ℹ️ Info Costi {broker_name}"):
+    market = broker_config.get('market', 'Italia')
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.markdown("**Commissioni Trading:**")
+        st.write(f"• Mercato: {market}")
+        st.write(f"• Tasso: {broker_config['commission_rate']*100:.2f}%")
+        st.write(f"• Minimo: €{broker_config['commission_min']:.2f}")
+        if broker_config.get('commission_max'):
+            st.write(f"• Massimo: €{broker_config['commission_max']:.2f}")
+        else:
+            st.write(f"• Massimo: Nessuno")
+
+    with col2:
+        st.markdown("**Tasse Transazione:**")
+        # Tobin Tax (Italia)
+        if broker_config['tobin_tax_rate'] > 0:
+            st.write(f"• Tobin Tax: {broker_config['tobin_tax_rate']*100:.1f}%")
+            st.write(f"  - Acquisto: Sì")
+            st.write(f"  - Vendita: {'Sì' if broker_config['tobin_tax_on_sell'] else 'No'}")
+        # Stamp Duty (UK)
+        if broker_config.get('stamp_duty_rate', 0) > 0:
+            st.write(f"• Stamp Duty: {broker_config['stamp_duty_rate']*100:.1f}%")
+            st.write(f"  - Acquisto: Sì")
+            st.write(f"  - Vendita: {'Sì' if broker_config.get('stamp_duty_on_sell', False) else 'No'}")
+        # Nessuna tassa
+        if broker_config['tobin_tax_rate'] == 0 and broker_config.get('stamp_duty_rate', 0) == 0:
+            st.write(f"• Nessuna tassa transazione")
+
+    with col3:
+        st.markdown("**Interessi e Leverage:**")
+        st.write(f"• Overnight: {broker_config['overnight_rate']*100:.2f}% annuo")
+        st.write(f"• Short cost: {broker_config['short_cost_rate']*100:.2f}% annuo")
+        st.write(f"• Leverage max: {broker_config['max_leverage']:.1f}x")
 
 session = get_database_session()
 
@@ -357,7 +537,16 @@ st.divider()
 col1, col2 = st.columns(2)
 
 with col1:
-    leverage = st.slider("Leverage", min_value=1.0, max_value=10.0, value=3.0, step=0.5)
+    max_lev = broker_config['max_leverage']
+    default_lev = min(3.0, max_lev)
+    leverage = st.slider(
+        "Leverage",
+        min_value=1.0,
+        max_value=max_lev,
+        value=default_lev,
+        step=0.5,
+        help=f"Leverage massimo disponibile con {broker_name}: {max_lev:.1f}x"
+    )
 
 with col2:
     capital = st.slider("Capitale (€)", min_value=300, max_value=10000, value=2000, step=100)
@@ -369,14 +558,14 @@ if st.button("🚀 Calcola con Dati REALI", type="primary"):
             results = []
             
             # Strategia A
-            r_a = strategy_long_with_dividend(df, dividend.ex_date, dividend.amount, leverage, capital)
+            r_a = strategy_long_with_dividend(df, dividend.ex_date, dividend.amount, leverage, capital, broker_config)
             if 'error' not in r_a:
                 results.append(r_a)
             else:
                 st.error(f"Strategia A: {r_a['error']}")
-            
+
             # Strategia B
-            r_b = strategy_long_without_dividend(df, dividend.ex_date, dividend.amount, leverage, capital)
+            r_b = strategy_long_without_dividend(df, dividend.ex_date, dividend.amount, leverage, capital, broker_config)
             if 'error' not in r_b:
                 results.append(r_b)
             else:
