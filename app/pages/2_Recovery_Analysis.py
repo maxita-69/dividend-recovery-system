@@ -552,7 +552,9 @@ st.info("""
 st.markdown("### 📈 Grafico Andamento Recovery")
 
 # Selezione dividendi per il grafico (default: 4 più recenti)
-available_dates = [pd.to_datetime(d).strftime('%Y-%m-%d') for d in evolution_df['ex_date'].tolist()]
+# Normalizza ex_date come stringa per il confronto
+evolution_df['ex_date_str'] = pd.to_datetime(evolution_df['ex_date']).dt.strftime('%Y-%m-%d')
+available_dates = evolution_df['ex_date_str'].tolist()
 default_dates = available_dates[:4] if len(available_dates) >= 4 else available_dates
 
 selected_dates = st.multiselect(
@@ -565,9 +567,9 @@ selected_dates = st.multiselect(
 if not selected_dates:
     st.warning("⚠️ Seleziona almeno un dividendo per visualizzare il grafico")
 else:
-    # Filtra evolution_df per le date selezionate
+    # Filtra evolution_df per le date selezionate (confronto stringhe)
     filtered_evolution_df = evolution_df[
-        evolution_df['ex_date'].isin([pd.Timestamp(d) for d in selected_dates])
+        evolution_df['ex_date_str'].isin(selected_dates)
     ]
 
     fig = go.Figure()
