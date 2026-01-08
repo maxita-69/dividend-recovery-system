@@ -75,6 +75,41 @@ class AnalysisConfig:
 
 
 @dataclass
+class PatternAnalysisConfig:
+    """Configuration for pattern analysis (pre-dividend → post-dividend correlations)."""
+
+    # Pre-dividend lookback period
+    lookback_days: int = 40  # Days to analyze before dividend
+
+    # Post-dividend recovery period
+    recovery_days: int = 15  # Days to analyze after dividend
+
+    # Time windows for feature extraction (relative to ex-date)
+    # Format: (start_day, end_day) where negative = before ex-date
+    time_windows: dict = field(default_factory=lambda: {
+        'D-40_D-30': (-40, -30),
+        'D-30_D-20': (-30, -20),
+        'D-20_D-15': (-20, -15),
+        'D-15_D-5': (-15, -5),
+        'D-5_D-3': (-5, -3),
+        'D-3_D-1': (-3, -1),
+    })
+
+    # Pattern matching parameters
+    similarity_threshold: float = 0.8  # Cosine similarity threshold for pattern matching
+    min_patterns_for_analysis: int = 3  # Minimum dividends needed for pattern analysis
+
+    # Feature extraction
+    extract_volume_features: bool = True
+    extract_volatility_features: bool = True
+    extract_trend_features: bool = True
+
+    # Correlation analysis
+    min_correlation_threshold: float = 0.3  # Minimum correlation to report
+    correlation_method: str = 'pearson'  # 'pearson', 'spearman', or 'kendall'
+
+
+@dataclass
 class DataCollectionConfig:
     """Configuration for data download and updates."""
 
@@ -138,6 +173,7 @@ class Config:
         # Initialize sub-configurations
         self.trading_costs = TradingCosts()
         self.analysis = AnalysisConfig()
+        self.pattern_analysis = PatternAnalysisConfig()
         self.data_collection = DataCollectionConfig()
         self.streamlit = StreamlitConfig()
 
@@ -213,6 +249,12 @@ class Config:
                 "max_recovery_days": self.analysis.max_recovery_days,
                 "recovery_threshold": self.analysis.recovery_threshold,
                 "evolution_windows": self.analysis.evolution_windows,
+            },
+            "pattern_analysis": {
+                "lookback_days": self.pattern_analysis.lookback_days,
+                "recovery_days": self.pattern_analysis.recovery_days,
+                "similarity_threshold": self.pattern_analysis.similarity_threshold,
+                "min_correlation_threshold": self.pattern_analysis.min_correlation_threshold,
             },
             "data_collection": {
                 "start_date": self.data_collection.start_date,

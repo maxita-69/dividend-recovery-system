@@ -97,6 +97,40 @@ with OperationLogger(logger, "download_prices", stock_ticker="ENEL.MI"):
 pytest tests/ -v
 ```
 
+#### 5. Pattern Analysis - Predictive Features ⭐ NEW
+- **What**: Analyzes correlations between pre-dividend behavior and post-dividend recovery
+- **Why**: Enables predictive trading based on historical patterns
+- **Benefits**:
+  - Identify leading indicators (what signals predict good recovery?)
+  - Pattern matching with similar historical events
+  - Data-driven decision making
+
+**Features**:
+- Extract multi-window features (D-40 → D-30, D-30 → D-20, ..., D-3 → D-1)
+- Calculate trend, volatility, volume patterns pre-dividend
+- Correlate with post-dividend recovery (D+5, D+10, D+15)
+- Find similar historical patterns using cosine similarity
+- Interactive Streamlit dashboard (Page 4)
+
+**Example**:
+```python
+from utils.pattern_analysis import analyze_all_dividends, find_correlations
+
+# Analyze all dividends
+patterns_df = analyze_all_dividends(session, stock_id, dividends)
+
+# Find correlations pre→post
+correlations = find_correlations(patterns_df)
+print(correlations.head())
+# Output: D-5_D-3_trend_pct ← → recovery_d5_pct: 0.76
+
+# Find similar patterns
+similar = find_similar_patterns(patterns_df, target_idx, similarity_threshold=0.8)
+```
+
+**Use Case**:
+> "Il trend degli ultimi 3 giorni pre-dividendo è +2.5% con volatilità bassa → storicamente, in 8 casi simili su 10, il recovery a D+5 è stato > 3%"
+
 ### 🧹 Code Quality Improvements
 
 #### Eliminated Code Duplication
@@ -181,11 +215,12 @@ No new dependencies required. Uses existing:
 
 ### 📊 Metrics
 
-- **Lines of Code Added**: ~1,200 (utilities + tests)
+- **Lines of Code Added**: ~2,000 (utilities + pattern analysis + tests + Streamlit page)
 - **Lines of Code Removed**: ~200 (duplicates + dead code)
-- **Test Coverage**: 35 tests covering core logic
+- **Test Coverage**: 51 tests covering core logic + pattern analysis
 - **Code Duplication**: Reduced from ~15% to <1%
 - **Configuration Centralization**: 100% (all hardcoded values moved to config)
+- **New Features**: Pattern Analysis (predictive correlations)
 
 ### 🙏 Acknowledgments
 

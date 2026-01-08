@@ -37,8 +37,9 @@ dividend-recovery-system/
 │   └── pages/             # Pagine Streamlit
 │       ├── 1_Single_Stock.py
 │       ├── 2_Recovery_Analysis.py
-│       └── 3_Strategy_Comparison.py
-├── tests/                 # Test automatizzati ⭐ NEW (35 tests)
+│       ├── 3_Strategy_Comparison.py
+│       └── 4_Pattern_Analysis.py  # ⭐ NEW Analisi predittiva
+├── tests/                 # Test automatizzati ⭐ NEW (51 tests)
 ├── scripts/               # Script download dati
 ├── data/                  # Database SQLite
 ├── logs/                  # Application logs ⭐ NEW
