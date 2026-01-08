@@ -36,13 +36,32 @@ def check_authentication():
         cookie_key = st.secrets.get("cookie_key", "default_key")
         cookie_expiry_days = st.secrets.get("cookie_expiry_days", 30)
 
-    except KeyError:
+    except (KeyError, FileNotFoundError, AttributeError) as e:
         st.error("""
         ⚠️ **Configurazione autenticazione mancante!**
 
-        Secrets non trovati. Per eseguire in locale, crea il file `.streamlit/secrets.toml`
-        con le credenziali. Per Streamlit Cloud, configura i secrets nella dashboard.
+        **I secrets non sono stati configurati.**
+
+        **Per Streamlit Cloud:**
+        1. Vai su https://share.streamlit.io/
+        2. Apri la tua app → Settings → Secrets
+        3. Copia il contenuto da STREAMLIT_SECRETS_SETUP.md
+        4. Salva e riavvia l'app
+
+        **Per esecuzione locale:**
+        Crea il file `.streamlit/secrets.toml` con le credenziali.
         """)
+        st.code("""
+        # Esempio secrets.toml
+        [credentials]
+          [credentials.usernames.maxdany]
+          name = "Max Dany"
+          password = "$2b$12$..."
+
+        cookie_name = "dividend_recovery_auth"
+        cookie_key = "746d6fa00a..."
+        cookie_expiry_days = 30
+        """, language="toml")
         st.stop()
 
     # Crea authenticator
@@ -54,15 +73,14 @@ def check_authentication():
     )
 
     # Mostra form di login
-    name, authentication_status, username = authenticator.login(
-        location='main',
-        fields={
-            'Form name': '🔐 Login - Dividend Recovery System',
-            'Username': 'Username',
-            'Password': 'Password',
-            'Login': 'Accedi'
-        }
-    )
+    try:
+        name, authentication_status, username = authenticator.login('Login', 'main')
+    except TypeError:
+        # Fallback per versioni più recenti dell'API
+        authenticator.login('Login', 'main')
+        name = st.session_state.get("name")
+        authentication_status = st.session_state.get("authentication_status")
+        username = st.session_state.get("username")
 
     # Gestisci stati di autenticazione
     if authentication_status:
