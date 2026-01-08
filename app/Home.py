@@ -24,6 +24,14 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# ============================================================================
+# AUTHENTICATION - Must be after set_page_config
+# ============================================================================
+sys.path.insert(0, str(Path(__file__).parent))
+from auth import require_authentication
+
+require_authentication()
+
 # Custom CSS
 st.markdown("""
 <style>

@@ -23,6 +23,14 @@ st.set_page_config(
 )
 
 # ============================================================================
+# AUTHENTICATION - Must be after set_page_config
+# ============================================================================
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from auth import require_authentication
+
+require_authentication()
+
+# ============================================================================
 # COSTI FINECO CONTO TRADING
 # ============================================================================
 COMMISSION_RATE = 0.0019      # 0.19%
