@@ -36,12 +36,15 @@ require_authentication()
 
 # Configurazione Fineco - Conto Trading
 FINECO_CONFIG = {
-    'name': 'Fineco',
+    'name': 'Fineco (Italia)',
+    'market': 'Italia',
     'commission_rate': 0.0019,       # 0.19%
     'commission_min': 2.95,          # €
     'commission_max': 19.0,          # €
     'tobin_tax_rate': 0.001,         # 0.1% solo su acquisto
     'tobin_tax_on_sell': False,      # Tobin tax NON si paga in vendita
+    'stamp_duty_rate': 0.0,          # Nessuna stamp duty
+    'stamp_duty_on_sell': False,
     'euribor_1m': 0.025,             # 2.5% (aggiornare periodicamente)
     'overnight_spread': 0.0799,      # 7.99%
     'overnight_rate': 0.025 + 0.0799,  # ~10.5% annuo
@@ -49,14 +52,17 @@ FINECO_CONFIG = {
     'max_leverage': 5.0               # Leverage massimo 5x
 }
 
-# Configurazione Interactive Brokers - Conto Non Professionale
-IB_CONFIG = {
-    'name': 'Interactive Brokers',
+# Configurazione Interactive Brokers - Italia
+IB_ITALIA_CONFIG = {
+    'name': 'Interactive Brokers (Italia)',
+    'market': 'Italia',
     'commission_rate': 0.0005,       # 0.05%
     'commission_min': 3.0,           # €3.00
     'commission_max': None,          # Nessun massimale
-    'tobin_tax_rate': 0.001,         # 0.1% su mercati regolamentati
+    'tobin_tax_rate': 0.001,         # 0.1% (Tobin Tax italiana)
     'tobin_tax_on_sell': True,       # Tobin tax SI PAGA anche in vendita
+    'stamp_duty_rate': 0.0,          # Nessuna stamp duty
+    'stamp_duty_on_sell': False,
     'euribor_1m': 0.025,             # 2.5%
     'overnight_spread': 0.025,       # ~2.5% spread IB
     'overnight_rate': 0.05,          # ~5% annuo totale
@@ -64,23 +70,85 @@ IB_CONFIG = {
     'max_leverage': 2.0               # Leverage massimo 2x overnight
 }
 
+# Configurazione Interactive Brokers - USA (NYSE, NASDAQ, ecc.)
+IB_USA_CONFIG = {
+    'name': 'Interactive Brokers (USA)',
+    'market': 'USA',
+    'commission_per_share': 0.005,   # $0.005 per share (~€0.0046)
+    'commission_rate': 0.0005,       # Fallback percentuale se necessario
+    'commission_min': 1.0,           # $1.00 (~€0.92)
+    'commission_max_pct': 0.01,      # Max 1% of trade value
+    'commission_max': None,
+    'tobin_tax_rate': 0.0,           # Nessuna Tobin tax USA
+    'tobin_tax_on_sell': False,
+    'stamp_duty_rate': 0.0,          # Nessuna stamp duty USA
+    'stamp_duty_on_sell': False,
+    'euribor_1m': 0.025,
+    'overnight_spread': 0.025,
+    'overnight_rate': 0.05,          # ~5% annuo
+    'short_cost_rate': 0.05,
+    'max_leverage': 2.0
+}
+
+# Configurazione Interactive Brokers - UK (LSE)
+IB_UK_CONFIG = {
+    'name': 'Interactive Brokers (UK)',
+    'market': 'UK',
+    'commission_flat': 3.0,          # £3 flat (~€3.50)
+    'commission_flat_threshold': 6000.0,  # Fino a £6000 trade value
+    'commission_rate': 0.0005,       # 0.05% sopra £6000
+    'commission_min': 3.0,
+    'commission_max': None,
+    'tobin_tax_rate': 0.0,           # No Tobin tax UK
+    'tobin_tax_on_sell': False,
+    'stamp_duty_rate': 0.005,        # 0.5% UK Stamp Duty
+    'stamp_duty_on_sell': False,     # Solo su acquisto
+    'euribor_1m': 0.025,
+    'overnight_spread': 0.025,
+    'overnight_rate': 0.05,
+    'short_cost_rate': 0.05,
+    'max_leverage': 2.0
+}
+
 BROKER_CONFIGS = {
-    'Fineco': FINECO_CONFIG,
-    'Interactive Brokers': IB_CONFIG
+    'Fineco (Italia)': FINECO_CONFIG,
+    'Interactive Brokers - Italia': IB_ITALIA_CONFIG,
+    'Interactive Brokers - USA': IB_USA_CONFIG,
+    'Interactive Brokers - UK': IB_UK_CONFIG
 }
 
 
 def calculate_commission(controvalore, broker_config):
     """
-    Calcola commissione in base al broker selezionato
+    Calcola commissione in base al broker e mercato selezionato
 
     Args:
-        controvalore: Valore della transazione
+        controvalore: Valore della transazione in EUR
         broker_config: Dizionario configurazione broker
 
     Returns:
-        Commissione in euro
+        Commissione in EUR
     """
+    market = broker_config.get('market', 'Italia')
+
+    # UK: flat £3 fino a £6000, poi 0.05%
+    if market == 'UK':
+        flat_threshold = broker_config.get('commission_flat_threshold', 6000.0)
+        if controvalore <= flat_threshold:
+            return broker_config.get('commission_flat', 3.0)
+        else:
+            return controvalore * broker_config['commission_rate']
+
+    # USA: approssimazione con 0.05% (in realtà $0.005/share, ma senza share count usiamo %)
+    # Min $1.00, max 1% of trade value
+    if market == 'USA':
+        comm = controvalore * broker_config['commission_rate']
+        comm = max(broker_config['commission_min'], comm)
+        max_pct = broker_config.get('commission_max_pct', 0.01)
+        comm = min(comm, controvalore * max_pct)
+        return comm
+
+    # Italia e altri: percentuale standard con min/max
     comm = controvalore * broker_config['commission_rate']
     comm = max(broker_config['commission_min'], comm)
 
@@ -219,16 +287,21 @@ def strategy_long_with_dividend(df, ex_date, dividend_amount, leverage, capital,
     comm_buy = calculate_commission(exposure, broker_config)
     comm_sell = calculate_commission(shares * sell_price, broker_config)
 
-    # 2. Tobin tax
+    # 2. Tobin tax (Italia)
     tobin_buy = exposure * broker_config['tobin_tax_rate']
     tobin_sell = (shares * sell_price * broker_config['tobin_tax_rate']) if broker_config['tobin_tax_on_sell'] else 0.0
     tobin = tobin_buy + tobin_sell
 
-    # 3. Overnight: da D-1 a sell_date
+    # 3. Stamp Duty (UK)
+    stamp_duty_buy = exposure * broker_config.get('stamp_duty_rate', 0.0)
+    stamp_duty_sell = (shares * sell_price * broker_config.get('stamp_duty_rate', 0.0)) if broker_config.get('stamp_duty_on_sell', False) else 0.0
+    stamp_duty = stamp_duty_buy + stamp_duty_sell
+
+    # 4. Overnight: da D-1 a sell_date
     overnight_days = (sell_date - d_minus_1).days
     overnight_cost = (exposure * broker_config['overnight_rate'] / 365) * overnight_days
 
-    total_costs = comm_buy + comm_sell + tobin + overnight_cost
+    total_costs = comm_buy + comm_sell + tobin + stamp_duty + overnight_cost
     net_profit = gross_profit - total_costs
     roi = (net_profit / capital) * 100
     
@@ -249,6 +322,7 @@ def strategy_long_with_dividend(df, ex_date, dividend_amount, leverage, capital,
         'comm_buy': comm_buy,
         'comm_sell': comm_sell,
         'tobin_tax': tobin,
+        'stamp_duty': stamp_duty,
         'overnight_cost': overnight_cost,
         'total_costs': total_costs,
         'net_profit': net_profit,
@@ -308,16 +382,21 @@ def strategy_long_without_dividend(df, ex_date, dividend_amount, leverage, capit
     comm_buy = calculate_commission(exposure, broker_config)
     comm_sell = calculate_commission(shares * sell_price, broker_config)
 
-    # Tobin tax
+    # Tobin tax (Italia)
     tobin_buy = exposure * broker_config['tobin_tax_rate']
     tobin_sell = (shares * sell_price * broker_config['tobin_tax_rate']) if broker_config['tobin_tax_on_sell'] else 0.0
     tobin = tobin_buy + tobin_sell
-    
+
+    # Stamp Duty (UK)
+    stamp_duty_buy = exposure * broker_config.get('stamp_duty_rate', 0.0)
+    stamp_duty_sell = (shares * sell_price * broker_config.get('stamp_duty_rate', 0.0)) if broker_config.get('stamp_duty_on_sell', False) else 0.0
+    stamp_duty = stamp_duty_buy + stamp_duty_sell
+
     # Overnight: da D0 a sell_date
     overnight_days = (sell_date - ex_date).days
     overnight_cost = (exposure * broker_config['overnight_rate'] / 365) * overnight_days
-    
-    total_costs = comm_buy + comm_sell + tobin + overnight_cost
+
+    total_costs = comm_buy + comm_sell + tobin + stamp_duty + overnight_cost
     net_profit = gross_profit - total_costs
     roi = (net_profit / capital) * 100
     
@@ -339,6 +418,7 @@ def strategy_long_without_dividend(df, ex_date, dividend_amount, leverage, capit
         'comm_buy': comm_buy,
         'comm_sell': comm_sell,
         'tobin_tax': tobin,
+        'stamp_duty': stamp_duty,
         'overnight_cost': overnight_cost,
         'total_costs': total_costs,
         'net_profit': net_profit,
@@ -385,22 +465,35 @@ broker_config = BROKER_CONFIGS[broker_name]
 
 # Mostra info broker
 with st.expander(f"ℹ️ Info Costi {broker_name}"):
+    market = broker_config.get('market', 'Italia')
+
     col1, col2, col3 = st.columns(3)
 
     with col1:
         st.markdown("**Commissioni Trading:**")
+        st.write(f"• Mercato: {market}")
         st.write(f"• Tasso: {broker_config['commission_rate']*100:.2f}%")
         st.write(f"• Minimo: €{broker_config['commission_min']:.2f}")
-        if broker_config['commission_max']:
+        if broker_config.get('commission_max'):
             st.write(f"• Massimo: €{broker_config['commission_max']:.2f}")
         else:
             st.write(f"• Massimo: Nessuno")
 
     with col2:
-        st.markdown("**Tobin Tax (FTT):**")
-        st.write(f"• Tasso: {broker_config['tobin_tax_rate']*100:.1f}%")
-        st.write(f"• Su acquisto: Sì")
-        st.write(f"• Su vendita: {'Sì' if broker_config['tobin_tax_on_sell'] else 'No'}")
+        st.markdown("**Tasse Transazione:**")
+        # Tobin Tax (Italia)
+        if broker_config['tobin_tax_rate'] > 0:
+            st.write(f"• Tobin Tax: {broker_config['tobin_tax_rate']*100:.1f}%")
+            st.write(f"  - Acquisto: Sì")
+            st.write(f"  - Vendita: {'Sì' if broker_config['tobin_tax_on_sell'] else 'No'}")
+        # Stamp Duty (UK)
+        if broker_config.get('stamp_duty_rate', 0) > 0:
+            st.write(f"• Stamp Duty: {broker_config['stamp_duty_rate']*100:.1f}%")
+            st.write(f"  - Acquisto: Sì")
+            st.write(f"  - Vendita: {'Sì' if broker_config.get('stamp_duty_on_sell', False) else 'No'}")
+        # Nessuna tassa
+        if broker_config['tobin_tax_rate'] == 0 and broker_config.get('stamp_duty_rate', 0) == 0:
+            st.write(f"• Nessuna tassa transazione")
 
     with col3:
         st.markdown("**Interessi e Leverage:**")
