@@ -72,15 +72,13 @@ def check_authentication():
         cookie_expiry_days=cookie_expiry_days
     )
 
-    # Mostra form di login
-    try:
-        name, authentication_status, username = authenticator.login('Login', 'main')
-    except TypeError:
-        # Fallback per versioni più recenti dell'API
-        authenticator.login('Login', 'main')
-        name = st.session_state.get("name")
-        authentication_status = st.session_state.get("authentication_status")
-        username = st.session_state.get("username")
+    # Mostra form di login (API v0.3.x)
+    authenticator.login(location='main')
+
+    # Ottieni stato autenticazione da session_state
+    name = st.session_state.get("name")
+    authentication_status = st.session_state.get("authentication_status")
+    username = st.session_state.get("username")
 
     # Gestisci stati di autenticazione
     if authentication_status:
@@ -88,7 +86,7 @@ def check_authentication():
         # Mostra bottone logout nella sidebar
         with st.sidebar:
             st.write(f'👤 **Benvenuto {name}**')
-            authenticator.logout('Logout', 'main')
+            authenticator.logout(location='sidebar')
 
         return name, authentication_status, username
 
