@@ -64,12 +64,12 @@ def check_authentication():
         """, language="toml")
         st.stop()
 
-    # Crea authenticator
+    # Crea authenticator (API v0.3.3 usa parametri posizionali)
     authenticator = stauth.Authenticate(
-        credentials=credentials,
-        cookie_name=cookie_name,
-        key=cookie_key,
-        cookie_expiry_days=cookie_expiry_days
+        credentials,
+        cookie_name,
+        cookie_key,
+        cookie_expiry_days
     )
 
     # Mostra form di login (API v0.3.x)
