@@ -48,3 +48,6 @@ statsmodels>=0.14.0
 
 # Machine Learning (for pattern analysis)
 scikit-learn>=1.3.0
+
+#patch per autenticazione
+streamlit-authenticator>=0.3.0
