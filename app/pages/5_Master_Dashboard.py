@@ -235,6 +235,176 @@ def render_frame_price_dividends(stock, df_prices, df_divs):
     with col4:
         st.metric("Dividendi Totali", len(df_divs) if df_divs is not None else 0)
 
+    # Filtro temporale: converti a datetime.date per Streamlit slider
+    # Assicuriamoci che df_prices['date'] sia datetime e normalizzata
+    df_prices = df_prices.copy()
+    df_prices['date'] = pd.to_datetime(df_prices['date'], errors='coerce').dt.normalize()
+    if df_prices['date'].isna().all():
+        st.warning("⚠️ Le date dei prezzi non sono valide.")
+        return
+
+    min_ts = df_prices['date'].min()
+    max_ts = df_prices['date'].max()
+
+    # Fallback se min/max sono NaT
+    if pd.isna(min_ts) or pd.isna(max_ts):
+        st.warning("⚠️ Intervallo date non disponibile.")
+        return
+
+    # Converti a datetime.date (tipo nativo Python) per compatibilità con st.slider
+    min_date = pd.to_datetime(min_ts).date()
+    max_date = pd.to_datetime(max_ts).date()
+
+    # Valore di default: (min_date, max_date)
+    default_value = (min_date, max_date)
+
+    # Usa st.slider con tipi coerenti (datetime.date)
+    date_range = st.slider(
+        "Intervallo date",
+        min_value=min_date,
+        max_value=max_date,
+        value=default_value,
+        format="YYYY-MM-DD",
+        key="frame1_date_range"
+    )
+
+    # Converti il valore selezionato in datetime64 per i filtri DataFrame
+    start_dt = pd.to_datetime(date_range[0]).normalize()
+    end_dt = pd.to_datetime(date_range[1]).normalize()
+
+    dfp = df_prices[
+        (df_prices['date'] >= start_dt) &
+        (df_prices['date'] <= end_dt)
+    ].copy()
+
+    if df_divs is not None and not df_divs.empty:
+        df_divs = df_divs.copy()
+        df_divs['ex_date'] = pd.to_datetime(df_divs['ex_date'], errors='coerce').dt.normalize()
+        dfd = df_divs[
+            (df_divs['ex_date'] >= start_dt) &
+            (df_divs['ex_date'] <= end_dt)
+        ].copy()
+    else:
+        dfd = pd.DataFrame(columns=['ex_date', 'amount'])
+
+    if dfp.empty:
+        st.warning("⚠️ Nessun dato nel range selezionato")
+        return
+
+    # Grafico semplice
+    fig = go.Figure()
+
+    fig.add_trace(go.Candlestick(
+        x=dfp['date'],
+        open=dfp['open'],
+        high=dfp['high'],
+        low=dfp['low'],
+        close=dfp['close'],
+        name='Prezzo',
+        increasing_line_color='green',
+        decreasing_line_color='red'
+    ))
+
+    # Dividendi con colori dinamici
+    if not dfd.empty:
+        # Merge sicuro: allineiamo su date normalizzate
+        merged = dfd.merge(
+            dfp[['date', 'close']],
+            left_on='ex_date',
+            right_on='date',
+            how='left'
+        ).rename(columns={'close': 'price_on_ex'})
+
+        div_dates = []
+        div_prices = []
+        div_labels = []
+        div_colors = []
+
+        for _, div in merged.iterrows():
+            if pd.isnull(div['price_on_ex']):
+                # se manca il prezzo esatto, proviamo a trovare il prezzo più vicino precedente
+                prev = dfp[dfp['date'] <= div['ex_date']]
+                if prev.empty:
+                    continue
+                price_on_ex = prev['close'].iloc[-1]
+            else:
+                price_on_ex = div['price_on_ex']
+
+            div_dates.append(div['ex_date'])
+            div_prices.append(price_on_ex * 1.02)
+            label = f"€{div['amount']:.3f}"
+            div_labels.append(label)
+
+            intensity = int(min(max(div['amount'] * 400, 30), 255)) if pd.notnull(div['amount']) else 100
+            div_colors.append(f"rgba(0, {intensity}, 0, 0.9)")
+
+        if div_dates:
+            fig.add_trace(go.Scatter(
+                x=div_dates,
+                y=div_prices,
+                mode='markers+text',
+                marker=dict(symbol='triangle-down', size=12, color=div_colors),
+                text=div_labels,
+                textposition='top center',
+                name='Dividendi',
+                showlegend=True,
+                hovertemplate='Data: %{x|%Y-%m-%d}<br>%{text}<extra></extra>'
+            ))
+
+    fig.update_layout(
+        title=f"{stock.ticker} - Prezzi e Dividendi",
+        xaxis_title="Data",
+        yaxis_title="Prezzo (€)",
+        height=500,
+        hovermode='x unified',
+        xaxis=dict(
+            rangeselector=dict(
+                buttons=[
+                    dict(count=6, label="6M", step="month", stepmode="backward"),
+                    dict(count=1, label="1Y", step="year", stepmode="backward"),
+                    dict(step="all")
+                ]
+            ),
+            rangeslider=dict(visible=True),
+            type="date"
+        )
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Tabella dividendi compatta
+    st.markdown("#### 💰 Storico Dividendi (range selezionato)")
+    if not dfd.empty:
+        df_divs_display = dfd[['ex_date', 'amount']].copy()
+        df_divs_display.rename(columns={
+            'ex_date': 'Data Ex',
+            'amount': 'Importo (€)'
+        }, inplace=True)
+        st.dataframe(df_divs_display, use_container_width=False, hide_index=True)
+    else:
+        st.info("Nessun dividendo nel periodo selezionato")
+
+    """
+    Frame 1: Vista rapida prezzi e dividendi
+    Focus: Overview veloce con filtro temporale
+    """
+    st.markdown("### 📉 Prezzi & Dividendi - Vista Rapida")
+
+    if df_prices is None or df_prices.empty:
+        st.warning("⚠️ Nessun dato prezzi disponibile per questo titolo")
+        return
+
+    # Metriche base
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Ticker", stock.ticker)
+    with col2:
+        st.metric("Mercato", getattr(stock, 'market', 'N/D'))
+    with col3:
+        st.metric("Prezzo Attuale", f"€{df_prices.iloc[-1]['close']:.2f}")
+    with col4:
+        st.metric("Dividendi Totali", len(df_divs) if df_divs is not None else 0)
+
     # Filtro temporale
     min_date = df_prices['date'].min()
     max_date = df_prices['date'].max()
