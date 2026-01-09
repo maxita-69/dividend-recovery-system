@@ -334,157 +334,238 @@ def render_frame_price_dividends(stock, df_prices, df_divs):
 
 
 # =============================================================================
-# FRAME 2: INDICATORI TECNICI COMPLETI
+# FRAME 2: ANALISI TECNICA ATTORNO AL DIVIDENDO (D-10 → D+45)
 # =============================================================================
 
-def render_frame_technical(stock, df_prices, df_divs):
+def render_frame_dividend_focus(stock, df_prices, df_divs):
     """
-    Frame 2: Analisi tecnica completa
-    Focus: Volume, Stocastico, Stocastico RSI
+    Frame 2: Analisi focalizzata su singolo dividendo
+    Intervallo: D-10 → D+45
+    Grafici incolonnati + linee verticali sincronizzate + metriche chiave
     """
-    st.markdown("### 📊 Indicatori Tecnici & Volume")
+    st.markdown("### 🎯 Analisi Tecnica Attorno al Dividendo (D-10 → D+45)")
 
-    if df_prices.empty:
-        st.warning("⚠️ Nessun dato prezzi disponibile")
+    if df_prices.empty or df_divs.empty:
+        st.info("Servono prezzi e dividendi per questa analisi.")
         return
 
-    # Calcola indicatori con cache
-    dfp = calculate_all_indicators(df_prices)
+    # Selezione dividendo
+    df_divs_sorted = df_divs.sort_values('ex_date')
+    div_options = {
+        f"{row['ex_date'].date()} – €{row['amount']:.3f}": row['ex_date']
+        for _, row in df_divs_sorted.iterrows()
+    }
 
-    if dfp is None:
-        st.error("Errore nel calcolo degli indicatori")
+    if not div_options:
+        st.warning("⚠️ Nessun dividendo disponibile per l'analisi")
         return
 
-    # Subplot: 4 pannelli
+    selected_label = st.selectbox("Seleziona Dividendo", list(div_options.keys()), key="frame3_div_select")
+    selected_date = div_options[selected_label]
+
+    # Parametri intervallo (opzionale - avanzato)
+    with st.expander("⚙️ Configurazione Intervallo Temporale"):
+        col_a, col_b = st.columns(2)
+        days_before = col_a.number_input("Giorni prima", value=10, min_value=5, max_value=30, key="frame3_days_before")
+        days_after = col_b.number_input("Giorni dopo", value=45, min_value=15, max_value=90, key="frame3_days_after")
+
+    # Intervallo D-10 → D+45 (o personalizzato)
+    start_date = selected_date - timedelta(days=days_before)
+    end_date = selected_date + timedelta(days=days_after)
+
+    dfp = df_prices[
+        (df_prices['date'] >= start_date) &
+        (df_prices['date'] <= end_date)
+    ].copy()
+
+    if dfp.empty:
+        st.warning("⚠️ Nessun dato disponibile nell'intervallo selezionato.")
+        return
+
+    # Calcolo indicatori
+    dfp_ind = calculate_all_indicators(dfp)
+    if dfp_ind is None:
+        st.error("Errore nel calcolo degli indicatori.")
+        return
+
+    # =============================================================================
+    # METRICHE CHIAVE POST-DIVIDENDO
+    # =============================================================================
+
+    # Trova prezzi chiave
+    prices_before = dfp_ind[dfp_ind['date'] < selected_date]
+    prices_after = dfp_ind[dfp_ind['date'] > selected_date]
+    price_on_ex = dfp_ind[dfp_ind['date'] == selected_date]
+
+    price_before = prices_before['close'].iloc[-1] if len(prices_before) > 0 else None
+    price_after = prices_after['close'].iloc[0] if len(prices_after) > 0 else None
+    price_current = dfp_ind['close'].iloc[-1] if len(dfp_ind) > 0 else None
+    price_ex = price_on_ex['close'].iloc[0] if len(price_on_ex) > 0 else None
+
+    # Importo dividendo
+    div_amount = df_divs_sorted[df_divs_sorted['ex_date'] == selected_date]['amount'].iloc[0]
+
+    # Metriche
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        if price_before and price_after:
+            drop_pct = ((price_after - price_before) / price_before) * 100
+            st.metric("Drop Ex-Date", f"{drop_pct:.2f}%", delta=f"{price_after - price_before:.2f}€")
+        else:
+            st.metric("Drop Ex-Date", "N/D")
+
+    with col2:
+        if price_before:
+            div_yield = (div_amount / price_before) * 100
+            st.metric("Dividend Yield", f"{div_yield:.2f}%", delta=f"€{div_amount:.3f}")
+        else:
+            st.metric("Dividend Yield", "N/D")
+
+    with col3:
+        if price_before and price_current:
+            recovery_pct = ((price_current - price_after) / (price_before - price_after)) * 100 if price_after else 0
+            st.metric("Recovery %", f"{recovery_pct:.1f}%", delta=f"{price_current - price_after:.2f}€")
+        else:
+            st.metric("Recovery %", "N/D")
+
+    with col4:
+        days_elapsed = (dfp_ind['date'].max() - selected_date).days
+        st.metric("Giorni da Ex-Date", f"{days_elapsed}", delta="giorni")
+
+    st.markdown("---")
+
+    # =============================================================================
+    # SUBPLOT: Prezzo + Volume + Indicatori
+    # =============================================================================
+
     fig = make_subplots(
         rows=4, cols=1,
         shared_xaxes=True,
         vertical_spacing=0.03,
-        row_heights=[0.5, 0.15, 0.175, 0.175],
+        row_heights=[0.50, 0.15, 0.175, 0.175],
         subplot_titles=(
-            f"{stock.ticker} - Prezzi e Dividendi",
+            f"{stock.ticker} – Prezzo (D-{days_before} → D+{days_after})",
             "Volume",
             "Stocastico (%K/%D)",
             "Stocastico RSI (%K/%D)"
         )
     )
 
-    # ROW 1: Prezzi + Dividendi
-    fig.add_trace(
-        go.Candlestick(
-            x=dfp['date'],
-            open=dfp['open'],
-            high=dfp['high'],
-            low=dfp['low'],
-            close=dfp['close'],
-            name='Prezzo',
-            increasing_line_color='green',
-            decreasing_line_color='red'
-        ),
-        row=1, col=1
-    )
+    # -------------------------
+    # ROW 1: Prezzo
+    # -------------------------
+    fig.add_trace(go.Candlestick(
+        x=dfp_ind['date'],
+        open=dfp_ind['open'],
+        high=dfp_ind['high'],
+        low=dfp_ind['low'],
+        close=dfp_ind['close'],
+        name='Prezzo',
+        increasing_line_color='green',
+        decreasing_line_color='red'
+    ), row=1, col=1)
 
-    # Dividendi
-    if not df_divs.empty:
-        dfd = df_divs.merge(
-            dfp[['date', 'close']],
-            left_on='ex_date',
-            right_on='date',
-            how='left'
-        ).rename(columns={'close': 'price_on_ex'})
+    # Marker Ex-Dividend (stella dorata)
+    if price_ex:
+        fig.add_trace(go.Scatter(
+            x=[selected_date],
+            y=[price_ex],
+            mode='markers',
+            marker=dict(size=15, color='gold', symbol='star', line=dict(color='black', width=1)),
+            name='Ex-Date',
+            showlegend=True,
+            hovertemplate=f'Ex-Date: {selected_date.date()}<br>Prezzo: €{price_ex:.2f}<extra></extra>'
+        ), row=1, col=1)
 
-        div_dates = []
-        div_prices = []
-        div_labels = []
-        div_colors = []
+    # Linea target recupero (prezzo pre-dividendo)
+    if price_before:
+        fig.add_hline(
+            y=price_before,
+            line_dash="dot",
+            line_color="green",
+            annotation_text=f"Target Recupero (€{price_before:.2f})",
+            annotation_position="right",
+            row=1, col=1
+        )
 
-        for _, div in dfd.iterrows():
-            if pd.isnull(div['price_on_ex']):
-                continue
-
-            div_dates.append(div['ex_date'])
-            div_prices.append(div['price_on_ex'] * 1.02)
-            label = f"€{div['amount']:.3f}"
-            div_labels.append(label)
-            intensity = int(min(div['amount'] * 400, 255)) if pd.notnull(div['amount']) else 100
-            div_colors.append(f"rgba(0, {intensity}, 0, 0.9)")
-
-        if div_dates:
-            fig.add_trace(
-                go.Scatter(
-                    x=div_dates,
-                    y=div_prices,
-                    mode='markers+text',
-                    marker=dict(symbol='triangle-down', size=12, color=div_colors),
-                    text=div_labels,
-                    textposition='top center',
-                    name='Dividendi',
-                    showlegend=True,
-                    hovertemplate='Data: %{x|%Y-%m-%d}<br>%{text}<extra></extra>'
-                ),
-                row=1, col=1
-            )
-
+    # -------------------------
     # ROW 2: Volume
+    # -------------------------
     colors = ['green' if row['close'] >= row['open'] else 'red'
-              for _, row in dfp.iterrows()]
+              for _, row in dfp_ind.iterrows()]
 
-    fig.add_trace(
-        go.Bar(
-            x=dfp['date'],
-            y=dfp['volume'],
-            name='Volume',
-            marker_color=colors,
-            showlegend=False
-        ),
-        row=2, col=1
-    )
+    fig.add_trace(go.Bar(
+        x=dfp_ind['date'],
+        y=dfp_ind['volume'],
+        marker_color=colors,
+        name='Volume',
+        showlegend=False
+    ), row=2, col=1)
 
+    # -------------------------
     # ROW 3: Stocastico
-    fig.add_trace(
-        go.Scatter(
-            x=dfp['date'],
-            y=dfp['stoch_k'],
-            name='Stoch %K',
-            line=dict(color='blue', width=1)
-        ),
-        row=3, col=1
-    )
-    fig.add_trace(
-        go.Scatter(
-            x=dfp['date'],
-            y=dfp['stoch_d'],
-            name='Stoch %D',
-            line=dict(color='red', width=1)
-        ),
-        row=3, col=1
-    )
+    # -------------------------
+    fig.add_trace(go.Scatter(
+        x=dfp_ind['date'],
+        y=dfp_ind['stoch_k'],
+        name='Stoch %K',
+        line=dict(color='blue', width=1)
+    ), row=3, col=1)
+
+    fig.add_trace(go.Scatter(
+        x=dfp_ind['date'],
+        y=dfp_ind['stoch_d'],
+        name='Stoch %D',
+        line=dict(color='red', width=1)
+    ), row=3, col=1)
+
     fig.add_hline(y=80, line_dash="dash", line_color="gray", opacity=0.5, row=3, col=1)
     fig.add_hline(y=20, line_dash="dash", line_color="gray", opacity=0.5, row=3, col=1)
 
+    # -------------------------
     # ROW 4: Stocastico RSI
-    fig.add_trace(
-        go.Scatter(
-            x=dfp['date'],
-            y=dfp['stoch_rsi_k'],
-            name='StochRSI %K',
-            line=dict(color='purple', width=1)
-        ),
-        row=4, col=1
-    )
-    fig.add_trace(
-        go.Scatter(
-            x=dfp['date'],
-            y=dfp['stoch_rsi_d'],
-            name='StochRSI %D',
-            line=dict(color='orange', width=1)
-        ),
-        row=4, col=1
-    )
+    # -------------------------
+    fig.add_trace(go.Scatter(
+        x=dfp_ind['date'],
+        y=dfp_ind['stoch_rsi_k'],
+        name='StochRSI %K',
+        line=dict(color='purple', width=1)
+    ), row=4, col=1)
+
+    fig.add_trace(go.Scatter(
+        x=dfp_ind['date'],
+        y=dfp_ind['stoch_rsi_d'],
+        name='StochRSI %D',
+        line=dict(color='orange', width=1)
+    ), row=4, col=1)
+
     fig.add_hline(y=80, line_dash="dash", line_color="gray", opacity=0.5, row=4, col=1)
     fig.add_hline(y=20, line_dash="dash", line_color="gray", opacity=0.5, row=4, col=1)
 
-    # Layout
+    # -------------------------
+    # LINEE VERTICALI SINCRONIZZATE
+    # -------------------------
+    special_dates = {
+        f"D-{days_before}": start_date,
+        "D-DAY": selected_date,
+        f"D+{days_after}": end_date
+    }
+
+    for label, d in special_dates.items():
+        line_color = "red" if label == "D-DAY" else "black"
+        line_width = 2 if label == "D-DAY" else 1.5
+
+        fig.add_vline(
+            x=d,
+            line_width=line_width,
+            line_dash="dash",
+            line_color=line_color,
+            annotation_text=label,
+            annotation_position="top left"
+        )
+
+    # Layout generale
     fig.update_xaxes(title_text="Data", row=4, col=1)
     fig.update_yaxes(title_text="Prezzo (€)", row=1, col=1)
     fig.update_yaxes(title_text="Volume", row=2, col=1)
@@ -495,6 +576,7 @@ def render_frame_technical(stock, df_prices, df_divs):
         height=900,
         hovermode='x unified',
         showlegend=True,
+        xaxis_rangeslider_visible=False,
         legend=dict(
             orientation="h",
             yanchor="bottom",
@@ -506,94 +588,59 @@ def render_frame_technical(stock, df_prices, df_divs):
 
     st.plotly_chart(fig, use_container_width=True)
 
-    # Interpretazione indicatori
-    st.markdown("#### 📊 Interpretazione Indicatori (Ultimo Valore)")
+    # =============================================================================
+    # INTERPRETAZIONE INDICATORI
+    # =============================================================================
 
-    col1, col2 = st.columns(2)
+    st.markdown("#### 📊 Interpretazione Indicatori (Valori Attuali)")
 
-    with col1:
+    col_i1, col_i2 = st.columns(2)
+
+    with col_i1:
         st.markdown("**Stocastico:**")
-        if not dfp.empty:
-            last_stoch_k = dfp['stoch_k'].iloc[-1]
-            if pd.notnull(last_stoch_k):
-                if last_stoch_k > 80:
-                    st.warning(f"⚠️ Ipercomprato ({last_stoch_k:.1f})")
-                elif last_stoch_k < 20:
-                    st.success(f"✅ Ipervenduto ({last_stoch_k:.1f})")
-                else:
-                    st.info(f"➡️ Neutrale ({last_stoch_k:.1f})")
+        last_stoch_k = dfp_ind['stoch_k'].iloc[-1]
+        if pd.notnull(last_stoch_k):
+            if last_stoch_k > 80:
+                st.warning(f"⚠️ Ipercomprato ({last_stoch_k:.1f}) - Possibile correzione")
+            elif last_stoch_k < 20:
+                st.success(f"✅ Ipervenduto ({last_stoch_k:.1f}) - Opportunità acquisto")
+            else:
+                st.info(f"➡️ Neutrale ({last_stoch_k:.1f})")
 
-    with col2:
+    with col_i2:
         st.markdown("**Stocastico RSI:**")
-        if not dfp.empty:
-            last_stoch_rsi_k = dfp['stoch_rsi_k'].iloc[-1]
-            if pd.notnull(last_stoch_rsi_k):
-                if last_stoch_rsi_k > 80:
-                    st.warning(f"⚠️ Ipercomprato ({last_stoch_rsi_k:.1f})")
-                elif last_stoch_rsi_k < 20:
-                    st.success(f"✅ Ipervenduto ({last_stoch_rsi_k:.1f})")
-                else:
-                    st.info(f"➡️ Neutrale ({last_stoch_rsi_k:.1f})")
+        last_stoch_rsi_k = dfp_ind['stoch_rsi_k'].iloc[-1]
+        if pd.notnull(last_stoch_rsi_k):
+            if last_stoch_rsi_k > 80:
+                st.warning(f"⚠️ Ipercomprato ({last_stoch_rsi_k:.1f}) - Possibile correzione")
+            elif last_stoch_rsi_k < 20:
+                st.success(f"✅ Ipervenduto ({last_stoch_rsi_k:.1f}) - Opportunità acquisto")
+            else:
+                st.info(f"➡️ Neutrale ({last_stoch_rsi_k:.1f})")
+
+    # =============================================================================
+    # SUGGERIMENTO OPERATIVO
+    # =============================================================================
+
+    st.markdown("---")
+    st.markdown("#### 💡 Analisi Operativa")
+
+    if price_before and price_current:
+        if price_current >= price_before:
+            st.success(f"✅ **RECUPERO COMPLETATO**: Il prezzo ha recuperato il dividendo (+{((price_current - price_before) / price_before * 100):.2f}%)")
+        else:
+            gap = price_before - price_current
+            gap_pct = (gap / price_before) * 100
+            st.warning(f"⚠️ **RECUPERO PARZIALE**: Mancano €{gap:.2f} ({gap_pct:.2f}%) al target di recupero")
 
 
 # =============================================================================
-# FRAME 3: ANALISI PRE/POST DIVIDENDO (Struttura per SAL 5)
-# =============================================================================
-
-def render_frame_pre_post_dividend(stock, df_prices, df_divs):
-    """
-    Frame 3: Analisi eventi Pre/Post dividendo
-    Focus: Pattern di comportamento intorno alla data ex-dividend
-    STRUTTURA PRONTA per implementazione SAL 5
-    """
-    st.markdown("### 🔍 Analisi Pre/Post Dividendo")
-
-    if df_prices.empty or df_divs.empty:
-        st.info("Servono prezzi e dividendi per questa analisi.")
-        return
-
-    st.markdown("""
-    Questa sezione sarà il **cuore dell'analisi SAL 5** per identificare pattern operabili.
-
-    **Obiettivo**: Capire se vale la pena operare su un dividendo specifico analizzando:
-
-    #### 📊 Finestre Temporali Pre-Dividendo:
-    - **D-10**: Volume, volatilità, trend 10 sedute prima
-    - **D-5**: Comportamento 5 sedute prima dello stacco
-    - **D-1**: Situazione giorno prima (cruciale per decisione operativa)
-
-    #### 📈 Finestre Temporali Post-Dividendo:
-    - **D+5, D+10, D+15, D+20, D+30, D+40, D+45**: Tracking recovery
-    - Identificazione **recovery speed** (velocità recupero dividendo)
-    - Calcolo **ROI effettivo** per ogni strategia (D1/D0, leva)
-
-    #### 🎯 Pattern da Cercare:
-    1. **Volume spike pre-dividend** → Correlazione con recovery veloce?
-    2. **Volatilità pre-dividend** → Maggiore volatilità = maggior rischio?
-    3. **Trend pre-dividend** → Rialzo pre-stacco influenza post-stacco?
-    4. **Yield %** → Dividendi alti recoveryano più lentamente?
-    5. **Stagionalità** → Gennaio vs Luglio comportamento diverso?
-    6. **Settore** → Banche vs Energia pattern diversi?
-
-    #### 💡 Output Finale:
-    - **Score operabilità** per ogni dividendo (1-10)
-    - **Probabilità recovery** entro X giorni
-    - **Risk/Reward** per D1 vs D0
-    - **ML Prediction** (dopo validazione statistica)
-
-    ---
-
-    **Status**: 🚧 Struttura pronta, implementazione in SAL 5 Week 3-4
-    """)
-
-
-# =============================================================================
-# FRAME 4: STATISTICHE & RENDIMENTO CUMULATO
+# FRAME 3: STATISTICHE & RENDIMENTO CUMULATO
 # =============================================================================
 
 def render_frame_stats(stock, df_prices, df_divs):
     """
-    Frame 4: Statistiche generali e rendimento
+    Frame 3: Statistiche generali e rendimento
     Focus: Metriche di performance del titolo
     """
     st.markdown("### 📈 Statistiche & Rendimento Cumulato")
@@ -675,8 +722,7 @@ def main():
 
     Questa dashboard aggrega diverse analisi per aiutarti a decidere:
     - 📉 Vista rapida prezzi/dividendi
-    - 📊 Analisi tecnica approfondita (volume + indicatori)
-    - 🔍 Pattern pre/post dividendo (SAL 5)
+    - 🎯 Analisi focalizzata su dividendo specifico (D-10 → D+45)
     - 📈 Statistiche di performance
     """)
 
@@ -692,15 +738,11 @@ def main():
     with st.expander("📉 Prezzi & Dividendi - Vista Rapida", expanded=True):
         render_frame_price_dividends(stock, df_prices, df_divs)
 
-    # FRAME 2: Indicatori Tecnici Completi
-    with st.expander("📊 Indicatori Tecnici & Volume", expanded=False):
-        render_frame_technical(stock, df_prices, df_divs)
+    # FRAME 2: Analisi Tecnica Attorno al Dividendo
+    with st.expander("🎯 Analisi Tecnica Attorno al Dividendo (D-10 → D+45)", expanded=False):
+        render_frame_dividend_focus(stock, df_prices, df_divs)
 
-    # FRAME 3: Analisi Pre/Post Dividendo (Struttura SAL 5)
-    with st.expander("🔍 Analisi Pre/Post Dividendo (SAL 5)", expanded=False):
-        render_frame_pre_post_dividend(stock, df_prices, df_divs)
-
-    # FRAME 4: Statistiche & Rendimento
+    # FRAME 3: Statistiche & Rendimento
     with st.expander("📈 Statistiche & Rendimento Cumulato", expanded=False):
         render_frame_stats(stock, df_prices, df_divs)
 
