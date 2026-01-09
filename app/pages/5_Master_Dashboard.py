@@ -20,7 +20,7 @@ from sqlalchemy.orm import sessionmaker
 # PATH & IMPORT
 # =============================================================================
 
-project_root = Path(__file__).parent.parent
+project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root / 'src'))
 sys.path.insert(0, str(project_root / 'app'))
 
