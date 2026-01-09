@@ -151,6 +151,7 @@ def compute_metrics_for_dividend(stock, dividend, pre_window=10, post_window=45)
         return None
 
     if prices.empty:
+        logger.warning(f"Nessun dato prezzo per {stock.ticker} nel periodo {start_pre} → {end_post} (dividendo {ex_date})")
         return None
 
     # Assicuriamoci che le date siano DatetimeIndex e ordinate
@@ -525,14 +526,22 @@ def main():
                 with OperationLogger(logger, "pattern_analysis_new", stock_ticker=stock.ticker):
                     # Calcola metriche per tutti i dividendi
                     metrics_list = []
-                    for d in dividends:
+                    total_divs = len(dividends)
+                    for i, d in enumerate(dividends, 1):
                         m = compute_metrics_for_dividend(stock, d)
                         if m:
                             metrics_list.append(m)
 
+                    st.info(f"✅ Calcolate metriche per {len(metrics_list)} dividendi su {total_divs} totali")
                     metrics_df = pd.DataFrame(metrics_list)
                     if metrics_df.empty:
-                        st.error("Impossibile calcolare metriche: dati insufficienti.")
+                        st.error("❌ Impossibile calcolare metriche: nessun dato di prezzo disponibile per i dividendi selezionati.")
+                        st.warning(f"""
+                        **Possibili cause:**
+                        - Il database non contiene dati di prezzo per il periodo dei dividendi
+                        - I dividendi sono troppo vecchi (es. {dividends[0].ex_date if dividends else 'N/D'})
+                        - Prova a selezionare un titolo con dati più recenti o scarica i dati storici mancanti
+                        """)
                         st.stop()
 
                     # Ordina per ex_date
