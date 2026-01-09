@@ -440,7 +440,7 @@ def render_frame_dividend_focus(stock, df_prices, df_divs):
             st.metric("Recovery %", "N/D")
 
     with col4:
-        days_elapsed = (dfp_ind['date'].max() - selected_date).days
+        days_elapsed = (dfp_ind['date'].max() - selected_date_cmp).days
         st.metric("Giorni da Ex-Date", f"{days_elapsed}", delta="giorni")
 
     st.markdown("---")
