@@ -352,7 +352,7 @@ def render_frame_dividend_focus(stock, df_prices, df_divs):
     # Selezione dividendo
     df_divs_sorted = df_divs.sort_values('ex_date')
     div_options = {
-        f"{row['ex_date'].date()} – €{row['amount']:.3f}": row['ex_date']
+        f"{row['ex_date']} – €{row['amount']:.3f}": row['ex_date']
         for _, row in df_divs_sorted.iterrows()
     }
 
@@ -475,7 +475,7 @@ def render_frame_dividend_focus(stock, df_prices, df_divs):
             marker=dict(size=15, color='gold', symbol='star', line=dict(color='black', width=1)),
             name='Ex-Date',
             showlegend=True,
-            hovertemplate=f'Ex-Date: {selected_date.date()}<br>Prezzo: €{price_ex:.2f}<extra></extra>'
+            hovertemplate=f'Ex-Date: {selected_date}<br>Prezzo: €{price_ex:.2f}<extra></extra>'
         ), row=1, col=1)
 
     # Linea target recupero (prezzo pre-dividendo)
