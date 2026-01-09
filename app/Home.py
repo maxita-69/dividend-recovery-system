@@ -211,6 +211,7 @@ try:
     with col1:
         st.page_link("pages/1_Single_Stock.py", label="📊 Analisi Singolo Titolo", icon="📊")
         st.page_link("pages/2_Recovery_Analysis.py", label="📈 Recovery Analysis", icon="📈")
+        st.page_link("pages/5_Master_Dashboard.py", label="📌 Master Dashboard", icon="📌")
 
     with col2:
         st.page_link("pages/3_Strategy_Comparison.py", label="⚙️ Confronto Strategie", icon="⚙️")
