@@ -42,6 +42,7 @@ require_authentication()
 @st.cache_resource
 def get_database_engine():
     """Cache engine, NON la sessione"""
+    # Calcola percorso direttamente nella funzione cached
     current_file = Path(__file__).resolve()
     project_root = current_file.parent.parent.parent
     db_path = project_root / "data" / "dividend_recovery.db"
@@ -64,16 +65,13 @@ def calculate_stochastic(df: pd.DataFrame, k_period=14, d_period=3):
     Calcola Stocastico %K e %D
 
     %K = (Close - Lowest Low) / (Highest High - Lowest Low) * 100
-    %D = SMA(%K, d_period)
+    %D = SMA(%K, 3)
     """
     df = df.copy()
-    # protezione contro divisione per zero
-    df['lowest_low'] = df['low'].rolling(window=k_period, min_periods=1).min()
-    df['highest_high'] = df['high'].rolling(window=k_period, min_periods=1).max()
-    denom = (df['highest_high'] - df['lowest_low']).replace(0, np.nan)
-    df['stoch_k'] = 100 * (df['close'] - df['lowest_low']) / denom
-    df['stoch_k'] = df['stoch_k'].fillna(method='ffill').fillna(50)  # fallback neutro
-    df['stoch_d'] = df['stoch_k'].rolling(window=d_period, min_periods=1).mean()
+    df['lowest_low'] = df['low'].rolling(window=k_period).min()
+    df['highest_high'] = df['high'].rolling(window=k_period).max()
+    df['stoch_k'] = 100 * (df['close'] - df['lowest_low']) / (df['highest_high'] - df['lowest_low'])
+    df['stoch_d'] = df['stoch_k'].rolling(window=d_period).mean()
     return df[['stoch_k', 'stoch_d']]
 
 
@@ -88,19 +86,16 @@ def calculate_stochastic_rsi(df: pd.DataFrame, rsi_period=14, stoch_period=14, k
 
     # RSI
     delta = df['close'].diff()
-    gain = (delta.where(delta > 0, 0)).rolling(window=rsi_period, min_periods=1).mean()
-    loss = (-delta.where(delta < 0, 0)).rolling(window=rsi_period, min_periods=1).mean()
-    rs = gain / loss.replace(0, np.nan)
+    gain = (delta.where(delta > 0, 0)).rolling(window=rsi_period).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(window=rsi_period).mean()
+    rs = gain / loss
     df['rsi'] = 100 - (100 / (1 + rs))
-    df['rsi'] = df['rsi'].fillna(method='ffill').fillna(50)
 
     # Stocastico su RSI
-    df['rsi_lowest'] = df['rsi'].rolling(window=stoch_period, min_periods=1).min()
-    df['rsi_highest'] = df['rsi'].rolling(window=stoch_period, min_periods=1).max()
-    denom_rsi = (df['rsi_highest'] - df['rsi_lowest']).replace(0, np.nan)
-    df['stoch_rsi_k'] = 100 * (df['rsi'] - df['rsi_lowest']) / denom_rsi
-    df['stoch_rsi_k'] = df['stoch_rsi_k'].fillna(method='ffill').fillna(50)
-    df['stoch_rsi_d'] = df['stoch_rsi_k'].rolling(window=d_period, min_periods=1).mean()
+    df['rsi_lowest'] = df['rsi'].rolling(window=stoch_period).min()
+    df['rsi_highest'] = df['rsi'].rolling(window=stoch_period).max()
+    df['stoch_rsi_k'] = 100 * (df['rsi'] - df['rsi_lowest']) / (df['rsi_highest'] - df['rsi_lowest'])
+    df['stoch_rsi_d'] = df['stoch_rsi_k'].rolling(window=d_period).mean()
 
     return df[['stoch_rsi_k', 'stoch_rsi_d']]
 
@@ -111,7 +106,7 @@ def calculate_all_indicators(df_prices: pd.DataFrame):
     Calcola tutti gli indicatori tecnici (con cache)
     Performance: calcolo pesante fatto una volta sola
     """
-    if df_prices is None or df_prices.empty:
+    if df_prices.empty:
         return None
 
     df = df_prices.sort_values('date').reset_index(drop=True).copy()
@@ -136,7 +131,6 @@ def calculate_all_indicators(df_prices: pd.DataFrame):
 def load_stock_data(stock_id: int):
     """
     Carica dati prezzi e dividendi con cache
-    Converte le colonne 'date' e 'ex_date' in datetime (normalized)
     """
     session = get_session()
 
@@ -156,13 +150,11 @@ def load_stock_data(stock_id: int):
     finally:
         session.close()
 
-    # Costruisci DataFrame prezzi
     df_prices = pd.DataFrame([
         (p.date, p.open, p.high, p.low, p.close, p.volume)
         for p in prices
     ], columns=['date', 'open', 'high', 'low', 'close', 'volume'])
 
-    # Costruisci DataFrame dividendi
     df_divs = pd.DataFrame([
         (d.ex_date, d.amount)
         for d in dividends
@@ -170,19 +162,10 @@ def load_stock_data(stock_id: int):
 
     # Pulizia con controlli robusti
     if not df_prices.empty:
-        # Converti date in datetime e normalizza (rimuove time component)
-        df_prices['date'] = pd.to_datetime(df_prices['date'], errors='coerce')
         df_prices = df_prices.dropna(subset=['date', 'close'])
-        df_prices['date'] = df_prices['date'].dt.normalize()
-        # Assicura tipi numerici per prezzi/volume
-        for col in ['open', 'high', 'low', 'close', 'volume']:
-            df_prices[col] = pd.to_numeric(df_prices[col], errors='coerce')
 
     if not df_divs.empty:
-        df_divs['ex_date'] = pd.to_datetime(df_divs['ex_date'], errors='coerce')
         df_divs = df_divs.dropna(subset=['ex_date', 'amount'])
-        df_divs['ex_date'] = df_divs['ex_date'].dt.normalize()
-        df_divs['amount'] = pd.to_numeric(df_divs['amount'], errors='coerce')
 
     return df_prices, df_divs
 
@@ -220,7 +203,7 @@ def render_frame_price_dividends(stock, df_prices, df_divs):
     """
     st.markdown("### 📉 Prezzi & Dividendi - Vista Rapida")
 
-    if df_prices is None or df_prices.empty:
+    if df_prices.empty:
         st.warning("⚠️ Nessun dato prezzi disponibile per questo titolo")
         return
 
@@ -229,181 +212,11 @@ def render_frame_price_dividends(stock, df_prices, df_divs):
     with col1:
         st.metric("Ticker", stock.ticker)
     with col2:
-        st.metric("Mercato", getattr(stock, 'market', 'N/D'))
+        st.metric("Mercato", stock.market)
     with col3:
         st.metric("Prezzo Attuale", f"€{df_prices.iloc[-1]['close']:.2f}")
     with col4:
-        st.metric("Dividendi Totali", len(df_divs) if df_divs is not None else 0)
-
-    # Filtro temporale: converti a datetime.date per Streamlit slider
-    # Assicuriamoci che df_prices['date'] sia datetime e normalizzata
-    df_prices = df_prices.copy()
-    df_prices['date'] = pd.to_datetime(df_prices['date'], errors='coerce').dt.normalize()
-    if df_prices['date'].isna().all():
-        st.warning("⚠️ Le date dei prezzi non sono valide.")
-        return
-
-    min_ts = df_prices['date'].min()
-    max_ts = df_prices['date'].max()
-
-    # Fallback se min/max sono NaT
-    if pd.isna(min_ts) or pd.isna(max_ts):
-        st.warning("⚠️ Intervallo date non disponibile.")
-        return
-
-    # Converti a datetime.date (tipo nativo Python) per compatibilità con st.slider
-    min_date = pd.to_datetime(min_ts).date()
-    max_date = pd.to_datetime(max_ts).date()
-
-    # Valore di default: (min_date, max_date)
-    default_value = (min_date, max_date)
-
-    # Usa st.slider con tipi coerenti (datetime.date)
-    date_range = st.slider(
-        "Intervallo date",
-        min_value=min_date,
-        max_value=max_date,
-        value=default_value,
-        format="YYYY-MM-DD",
-        key="frame1_date_range"
-    )
-
-    # Converti il valore selezionato in datetime64 per i filtri DataFrame
-    start_dt = pd.to_datetime(date_range[0]).normalize()
-    end_dt = pd.to_datetime(date_range[1]).normalize()
-
-    dfp = df_prices[
-        (df_prices['date'] >= start_dt) &
-        (df_prices['date'] <= end_dt)
-    ].copy()
-
-    if df_divs is not None and not df_divs.empty:
-        df_divs = df_divs.copy()
-        df_divs['ex_date'] = pd.to_datetime(df_divs['ex_date'], errors='coerce').dt.normalize()
-        dfd = df_divs[
-            (df_divs['ex_date'] >= start_dt) &
-            (df_divs['ex_date'] <= end_dt)
-        ].copy()
-    else:
-        dfd = pd.DataFrame(columns=['ex_date', 'amount'])
-
-    if dfp.empty:
-        st.warning("⚠️ Nessun dato nel range selezionato")
-        return
-
-    # Grafico semplice
-    fig = go.Figure()
-
-    fig.add_trace(go.Candlestick(
-        x=dfp['date'],
-        open=dfp['open'],
-        high=dfp['high'],
-        low=dfp['low'],
-        close=dfp['close'],
-        name='Prezzo',
-        increasing_line_color='green',
-        decreasing_line_color='red'
-    ))
-
-    # Dividendi con colori dinamici
-    if not dfd.empty:
-        # Merge sicuro: allineiamo su date normalizzate
-        merged = dfd.merge(
-            dfp[['date', 'close']],
-            left_on='ex_date',
-            right_on='date',
-            how='left'
-        ).rename(columns={'close': 'price_on_ex'})
-
-        div_dates = []
-        div_prices = []
-        div_labels = []
-        div_colors = []
-
-        for _, div in merged.iterrows():
-            if pd.isnull(div['price_on_ex']):
-                # se manca il prezzo esatto, proviamo a trovare il prezzo più vicino precedente
-                prev = dfp[dfp['date'] <= div['ex_date']]
-                if prev.empty:
-                    continue
-                price_on_ex = prev['close'].iloc[-1]
-            else:
-                price_on_ex = div['price_on_ex']
-
-            div_dates.append(div['ex_date'])
-            div_prices.append(price_on_ex * 1.02)
-            label = f"€{div['amount']:.3f}"
-            div_labels.append(label)
-
-            intensity = int(min(max(div['amount'] * 400, 30), 255)) if pd.notnull(div['amount']) else 100
-            div_colors.append(f"rgba(0, {intensity}, 0, 0.9)")
-
-        if div_dates:
-            fig.add_trace(go.Scatter(
-                x=div_dates,
-                y=div_prices,
-                mode='markers+text',
-                marker=dict(symbol='triangle-down', size=12, color=div_colors),
-                text=div_labels,
-                textposition='top center',
-                name='Dividendi',
-                showlegend=True,
-                hovertemplate='Data: %{x|%Y-%m-%d}<br>%{text}<extra></extra>'
-            ))
-
-    fig.update_layout(
-        title=f"{stock.ticker} - Prezzi e Dividendi",
-        xaxis_title="Data",
-        yaxis_title="Prezzo (€)",
-        height=500,
-        hovermode='x unified',
-        xaxis=dict(
-            rangeselector=dict(
-                buttons=[
-                    dict(count=6, label="6M", step="month", stepmode="backward"),
-                    dict(count=1, label="1Y", step="year", stepmode="backward"),
-                    dict(step="all")
-                ]
-            ),
-            rangeslider=dict(visible=True),
-            type="date"
-        )
-    )
-
-    st.plotly_chart(fig, use_container_width=True)
-
-    # Tabella dividendi compatta
-    st.markdown("#### 💰 Storico Dividendi (range selezionato)")
-    if not dfd.empty:
-        df_divs_display = dfd[['ex_date', 'amount']].copy()
-        df_divs_display.rename(columns={
-            'ex_date': 'Data Ex',
-            'amount': 'Importo (€)'
-        }, inplace=True)
-        st.dataframe(df_divs_display, use_container_width=False, hide_index=True)
-    else:
-        st.info("Nessun dividendo nel periodo selezionato")
-
-    """
-    Frame 1: Vista rapida prezzi e dividendi
-    Focus: Overview veloce con filtro temporale
-    """
-    st.markdown("### 📉 Prezzi & Dividendi - Vista Rapida")
-
-    if df_prices is None or df_prices.empty:
-        st.warning("⚠️ Nessun dato prezzi disponibile per questo titolo")
-        return
-
-    # Metriche base
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.metric("Ticker", stock.ticker)
-    with col2:
-        st.metric("Mercato", getattr(stock, 'market', 'N/D'))
-    with col3:
-        st.metric("Prezzo Attuale", f"€{df_prices.iloc[-1]['close']:.2f}")
-    with col4:
-        st.metric("Dividendi Totali", len(df_divs) if df_divs is not None else 0)
+        st.metric("Dividendi Totali", len(df_divs))
 
     # Filtro temporale
     min_date = df_prices['date'].min()
@@ -419,17 +232,14 @@ def render_frame_price_dividends(stock, df_prices, df_divs):
     )
 
     dfp = df_prices[
-        (df_prices['date'] >= pd.to_datetime(date_range[0]).normalize()) &
-        (df_prices['date'] <= pd.to_datetime(date_range[1]).normalize())
+        (df_prices['date'] >= date_range[0]) &
+        (df_prices['date'] <= date_range[1])
     ].copy()
 
-    if df_divs is not None and not df_divs.empty:
-        dfd = df_divs[
-            (df_divs['ex_date'] >= pd.to_datetime(date_range[0]).normalize()) &
-            (df_divs['ex_date'] <= pd.to_datetime(date_range[1]).normalize())
-        ].copy()
-    else:
-        dfd = pd.DataFrame(columns=['ex_date', 'amount'])
+    dfd = df_divs[
+        (df_divs['ex_date'] >= date_range[0]) &
+        (df_divs['ex_date'] <= date_range[1])
+    ].copy()
 
     if dfp.empty:
         st.warning("⚠️ Nessun dato nel range selezionato")
@@ -451,8 +261,7 @@ def render_frame_price_dividends(stock, df_prices, df_divs):
 
     # Dividendi con colori dinamici
     if not dfd.empty:
-        # Merge sicuro: allineiamo su date normalizzate
-        merged = dfd.merge(
+        dfd = dfd.merge(
             dfp[['date', 'close']],
             left_on='ex_date',
             right_on='date',
@@ -464,22 +273,17 @@ def render_frame_price_dividends(stock, df_prices, df_divs):
         div_labels = []
         div_colors = []
 
-        for _, div in merged.iterrows():
+        for _, div in dfd.iterrows():
             if pd.isnull(div['price_on_ex']):
-                # se manca il prezzo esatto, proviamo a trovare il prezzo più vicino precedente
-                prev = dfp[dfp['date'] <= div['ex_date']]
-                if prev.empty:
-                    continue
-                price_on_ex = prev['close'].iloc[-1]
-            else:
-                price_on_ex = div['price_on_ex']
+                continue
 
             div_dates.append(div['ex_date'])
-            div_prices.append(price_on_ex * 1.02)
+            div_prices.append(div['price_on_ex'] * 1.02)
             label = f"€{div['amount']:.3f}"
             div_labels.append(label)
 
-            intensity = int(min(max(div['amount'] * 400, 30), 255)) if pd.notnull(div['amount']) else 100
+            # Colore dinamico basato su importo
+            intensity = int(min(div['amount'] * 400, 255)) if pd.notnull(div['amount']) else 100
             div_colors.append(f"rgba(0, {intensity}, 0, 0.9)")
 
         if div_dates:
@@ -541,14 +345,14 @@ def render_frame_dividend_focus(stock, df_prices, df_divs):
     """
     st.markdown("### 🎯 Analisi Tecnica Attorno al Dividendo (D-10 → D+45)")
 
-    if df_prices is None or df_prices.empty or df_divs is None or df_divs.empty:
+    if df_prices.empty or df_divs.empty:
         st.info("Servono prezzi e dividendi per questa analisi.")
         return
 
     # Selezione dividendo
     df_divs_sorted = df_divs.sort_values('ex_date')
     div_options = {
-        f"{row['ex_date'].date()} – €{row['amount']:.3f}": row['ex_date']
+        f"{row['ex_date']} – €{row['amount']:.3f}": row['ex_date']
         for _, row in df_divs_sorted.iterrows()
     }
 
@@ -558,7 +362,6 @@ def render_frame_dividend_focus(stock, df_prices, df_divs):
 
     selected_label = st.selectbox("Seleziona Dividendo", list(div_options.keys()), key="frame3_div_select")
     selected_date = div_options[selected_label]
-    # selected_date è un pd.Timestamp normalizzato (00:00:00)
 
     # Converti date in datetime per compatibilità con Plotly
     if not isinstance(selected_date, datetime):
@@ -571,8 +374,8 @@ def render_frame_dividend_focus(stock, df_prices, df_divs):
         days_after = col_b.number_input("Giorni dopo", value=45, min_value=15, max_value=90, key="frame3_days_after")
 
     # Intervallo D-10 → D+45 (o personalizzato)
-    start_date = (pd.to_datetime(selected_date) - timedelta(days=days_before)).normalize()
-    end_date = (pd.to_datetime(selected_date) + timedelta(days=days_after)).normalize()
+    start_date = selected_date - timedelta(days=days_before)
+    end_date = selected_date + timedelta(days=days_after)
 
     dfp = df_prices[
         (df_prices['date'] >= start_date) &
@@ -593,7 +396,7 @@ def render_frame_dividend_focus(stock, df_prices, df_divs):
     # METRICHE CHIAVE POST-DIVIDENDO
     # =============================================================================
 
-    # Trova prezzi chiave: usiamo match su date normalizzate
+    # Trova prezzi chiave
     prices_before = dfp_ind[dfp_ind['date'] < selected_date]
     prices_after = dfp_ind[dfp_ind['date'] > selected_date]
     price_on_ex = dfp_ind[dfp_ind['date'] == selected_date]
@@ -610,29 +413,28 @@ def render_frame_dividend_focus(stock, df_prices, df_divs):
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
-        if price_before is not None and price_after is not None:
-            drop_pct = ((price_after - price_before) / price_before) * 100 if price_before != 0 else np.nan
-            st.metric("Drop Ex-Date", f"{drop_pct:.2f}%" if not np.isnan(drop_pct) else "N/D", delta=f"{price_after - price_before:.2f}€")
+        if price_before and price_after:
+            drop_pct = ((price_after - price_before) / price_before) * 100
+            st.metric("Drop Ex-Date", f"{drop_pct:.2f}%", delta=f"{price_after - price_before:.2f}€")
         else:
             st.metric("Drop Ex-Date", "N/D")
 
     with col2:
-        if price_before is not None and price_before != 0:
+        if price_before:
             div_yield = (div_amount / price_before) * 100
             st.metric("Dividend Yield", f"{div_yield:.2f}%", delta=f"€{div_amount:.3f}")
         else:
             st.metric("Dividend Yield", "N/D")
 
     with col3:
-        if price_before is not None and price_after is not None and price_current is not None:
-            denom = (price_before - price_after) if (price_before - price_after) != 0 else np.nan
-            recovery_pct = ((price_current - price_after) / denom) * 100 if not np.isnan(denom) else np.nan
-            st.metric("Recovery %", f"{recovery_pct:.1f}%" if not np.isnan(recovery_pct) else "N/D", delta=f"{price_current - price_after:.2f}€" if price_current is not None and price_after is not None else "")
+        if price_before and price_current:
+            recovery_pct = ((price_current - price_after) / (price_before - price_after)) * 100 if price_after else 0
+            st.metric("Recovery %", f"{recovery_pct:.1f}%", delta=f"{price_current - price_after:.2f}€")
         else:
             st.metric("Recovery %", "N/D")
 
     with col4:
-        days_elapsed = (dfp_ind['date'].max() - selected_date).days if len(dfp_ind) > 0 else 0
+        days_elapsed = (dfp_ind['date'].max() - selected_date).days
         st.metric("Giorni da Ex-Date", f"{days_elapsed}", delta="giorni")
 
     st.markdown("---")
@@ -669,7 +471,7 @@ def render_frame_dividend_focus(stock, df_prices, df_divs):
     ), row=1, col=1)
 
     # Marker Ex-Dividend (stella dorata)
-    if price_ex is not None:
+    if price_ex:
         fig.add_trace(go.Scatter(
             x=[selected_date],
             y=[price_ex],
@@ -677,11 +479,11 @@ def render_frame_dividend_focus(stock, df_prices, df_divs):
             marker=dict(size=15, color='gold', symbol='star', line=dict(color='black', width=1)),
             name='Ex-Date',
             showlegend=True,
-            hovertemplate=f'Ex-Date: {selected_date.date()}<br>Prezzo: €{price_ex:.2f}<extra></extra>'
+            hovertemplate=f'Ex-Date: {selected_date}<br>Prezzo: €{price_ex:.2f}<extra></extra>'
         ), row=1, col=1)
 
     # Linea target recupero (prezzo pre-dividendo)
-    if price_before is not None:
+    if price_before:
         fig.add_hline(
             y=price_before,
             line_dash="dot",
@@ -800,7 +602,7 @@ def render_frame_dividend_focus(stock, df_prices, df_divs):
 
     with col_i1:
         st.markdown("**Stocastico:**")
-        last_stoch_k = dfp_ind['stoch_k'].iloc[-1] if 'stoch_k' in dfp_ind.columns else np.nan
+        last_stoch_k = dfp_ind['stoch_k'].iloc[-1]
         if pd.notnull(last_stoch_k):
             if last_stoch_k > 80:
                 st.warning(f"⚠️ Ipercomprato ({last_stoch_k:.1f}) - Possibile correzione")
@@ -811,7 +613,7 @@ def render_frame_dividend_focus(stock, df_prices, df_divs):
 
     with col_i2:
         st.markdown("**Stocastico RSI:**")
-        last_stoch_rsi_k = dfp_ind['stoch_rsi_k'].iloc[-1] if 'stoch_rsi_k' in dfp_ind.columns else np.nan
+        last_stoch_rsi_k = dfp_ind['stoch_rsi_k'].iloc[-1]
         if pd.notnull(last_stoch_rsi_k):
             if last_stoch_rsi_k > 80:
                 st.warning(f"⚠️ Ipercomprato ({last_stoch_rsi_k:.1f}) - Possibile correzione")
@@ -827,12 +629,12 @@ def render_frame_dividend_focus(stock, df_prices, df_divs):
     st.markdown("---")
     st.markdown("#### 💡 Analisi Operativa")
 
-    if price_before is not None and price_current is not None:
+    if price_before and price_current:
         if price_current >= price_before:
             st.success(f"✅ **RECUPERO COMPLETATO**: Il prezzo ha recuperato il dividendo (+{((price_current - price_before) / price_before * 100):.2f}%)")
         else:
             gap = price_before - price_current
-            gap_pct = (gap / price_before) * 100 if price_before != 0 else np.nan
+            gap_pct = (gap / price_before) * 100
             st.warning(f"⚠️ **RECUPERO PARZIALE**: Mancano €{gap:.2f} ({gap_pct:.2f}%) al target di recupero")
 
 
@@ -847,7 +649,7 @@ def render_frame_stats(stock, df_prices, df_divs):
     """
     st.markdown("### 📈 Statistiche & Rendimento Cumulato")
 
-    if df_prices is None or df_prices.empty:
+    if df_prices.empty:
         st.warning("⚠️ Nessun dato prezzi disponibile")
         return
 
@@ -865,7 +667,7 @@ def render_frame_stats(stock, df_prices, df_divs):
         cum_return = (1 + returns).prod() - 1
 
     # Calcolo dividendi per anno
-    if df_divs is not None and not df_divs.empty:
+    if not df_divs.empty:
         df_divs_enriched = df_divs.merge(
             dfp[['date', 'close']],
             left_on='ex_date',
@@ -873,20 +675,14 @@ def render_frame_stats(stock, df_prices, df_divs):
             how='left'
         ).rename(columns={'close': 'price_on_ex'})
 
-        # fallback per price_on_ex se NaN: prendi prezzo precedente più vicino
-        def safe_price_on_ex(row):
-            if pd.notnull(row['price_on_ex']):
-                return row['price_on_ex']
-            prev = dfp[dfp['date'] <= row['ex_date']]
-            return prev['close'].iloc[-1] if not prev.empty else np.nan
-
-        df_divs_enriched['price_on_ex'] = df_divs_enriched.apply(safe_price_on_ex, axis=1)
         df_divs_enriched['yield'] = df_divs_enriched.apply(
-            lambda row: (row['amount'] / row['price_on_ex']) if pd.notnull(row['price_on_ex']) and row['price_on_ex'] != 0 else np.nan,
+            lambda row: row['amount'] / row['price_on_ex']
+            if pd.notnull(row['price_on_ex']) and row['price_on_ex'] != 0
+            else None,
             axis=1
         )
         df_divs_enriched['year'] = pd.to_datetime(df_divs_enriched['ex_date']).dt.year
-        div_per_year = df_divs_enriched.groupby('year').size().mean() if not df_divs_enriched.empty else 0
+        div_per_year = df_divs_enriched.groupby('year').size().mean()
     else:
         div_per_year = 0
 
