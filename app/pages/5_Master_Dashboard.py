@@ -343,6 +343,13 @@ def render_frame_dividend_focus(stock, df_prices, df_divs):
     Intervallo: D-10 → D+45
     Grafici incolonnati + linee verticali sincronizzate + metriche chiave
     """
+    # Helper per convertire date in datetime (Plotly richiede datetime)
+    def ensure_datetime(d):
+        if isinstance(d, datetime):
+            return d
+        else:
+            return datetime.combine(d, datetime.min.time())
+
     st.markdown("### 🎯 Analisi Tecnica Attorno al Dividendo (D-10 → D+45)")
 
     if df_prices.empty or df_divs.empty:
@@ -364,8 +371,7 @@ def render_frame_dividend_focus(stock, df_prices, df_divs):
     selected_date = div_options[selected_label]
 
     # Converti date in datetime per compatibilità con Plotly
-    if not isinstance(selected_date, datetime):
-        selected_date = datetime.combine(selected_date, datetime.min.time())
+    selected_date = ensure_datetime(selected_date)
 
     # Parametri intervallo (opzionale - avanzato)
     with st.expander("⚙️ Configurazione Intervallo Temporale"):
@@ -478,14 +484,15 @@ def render_frame_dividend_focus(stock, df_prices, df_divs):
 
     # Marker Ex-Dividend (stella dorata)
     if price_ex:
+        selected_date_dt = ensure_datetime(selected_date)
         fig.add_trace(go.Scatter(
-            x=[selected_date],
+            x=[selected_date_dt],
             y=[price_ex],
             mode='markers',
             marker=dict(size=15, color='gold', symbol='star', line=dict(color='black', width=1)),
             name='Ex-Date',
             showlegend=True,
-            hovertemplate=f'Ex-Date: {selected_date}<br>Prezzo: €{price_ex:.2f}<extra></extra>'
+            hovertemplate=f'Ex-Date: {selected_date_cmp}<br>Prezzo: €{price_ex:.2f}<extra></extra>'
         ), row=1, col=1)
 
     # Linea target recupero (prezzo pre-dividendo)
@@ -556,10 +563,11 @@ def render_frame_dividend_focus(stock, df_prices, df_divs):
     # -------------------------
     # LINEE VERTICALI SINCRONIZZATE
     # -------------------------
+    # Converti tutte le date in datetime per Plotly (add_vline richiede datetime, non date)
     special_dates = {
-        f"D-{days_before}": start_date,
-        "D-DAY": selected_date,
-        f"D+{days_after}": end_date
+        f"D-{days_before}": ensure_datetime(start_date),
+        "D-DAY": ensure_datetime(selected_date),
+        f"D+{days_after}": ensure_datetime(end_date)
     }
 
     for label, d in special_dates.items():
