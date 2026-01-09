@@ -341,15 +341,8 @@ def render_frame_dividend_focus(stock, df_prices, df_divs):
     """
     Frame 2: Analisi focalizzata su singolo dividendo
     Intervallo: D-10 → D+45
-    Grafici incolonnati + linee verticali sincronizzate + metriche chiave
+    Grafici incolonnati + markers per punti chiave + metriche
     """
-    # Helper per convertire date in datetime (Plotly richiede datetime)
-    def ensure_datetime(d):
-        if isinstance(d, datetime):
-            return d
-        else:
-            return datetime.combine(d, datetime.min.time())
-
     st.markdown("### 🎯 Analisi Tecnica Attorno al Dividendo (D-10 → D+45)")
 
     if df_prices.empty or df_divs.empty:
@@ -369,9 +362,6 @@ def render_frame_dividend_focus(stock, df_prices, df_divs):
 
     selected_label = st.selectbox("Seleziona Dividendo", list(div_options.keys()), key="frame3_div_select")
     selected_date = div_options[selected_label]
-
-    # Converti date in datetime per compatibilità con Plotly
-    selected_date = ensure_datetime(selected_date)
 
     # Parametri intervallo (opzionale - avanzato)
     with st.expander("⚙️ Configurazione Intervallo Temporale"):
@@ -485,7 +475,7 @@ def render_frame_dividend_focus(stock, df_prices, df_divs):
     # Marker Ex-Dividend (stella dorata)
     if price_ex:
         fig.add_trace(go.Scatter(
-            x=[pd.Timestamp(selected_date)],
+            x=[selected_date_cmp],
             y=[price_ex],
             mode='markers',
             marker=dict(size=15, color='gold', symbol='star', line=dict(color='black', width=1)),
@@ -560,27 +550,32 @@ def render_frame_dividend_focus(stock, df_prices, df_divs):
     fig.add_hline(y=20, line_dash="dash", line_color="gray", opacity=0.5, row=4, col=1)
 
     # -------------------------
-    # LINEE VERTICALI SINCRONIZZATE
+    # MARKERS PER PUNTI CHIAVE (D-10, D-DAY, D+45)
     # -------------------------
-    # Converti date in pd.Timestamp per compatibilità con Plotly
-    special_dates = {
-        f"D-{days_before}": pd.Timestamp(start_date),
-        "D-DAY": pd.Timestamp(selected_date),
-        f"D+{days_after}": pd.Timestamp(end_date)
-    }
+    # Aggiungi markers invisibili con annotazioni per i punti chiave
+    key_dates_info = [
+        (start_date_cmp, f"D-{days_before}", "blue"),
+        (selected_date_cmp, "D-DAY", "red"),
+        (end_date_cmp, f"D+{days_after}", "green")
+    ]
 
-    for label, d in special_dates.items():
-        line_color = "red" if label == "D-DAY" else "black"
-        line_width = 2 if label == "D-DAY" else 1.5
-
-        fig.add_vline(
-            x=d,
-            line_width=line_width,
-            line_dash="dash",
-            line_color=line_color,
-            annotation_text=label,
-            annotation_position="top left"
-        )
+    for date_val, label, color in key_dates_info:
+        # Trova il prezzo alla data (se esiste)
+        price_at_date = dfp_ind[dfp_ind['date'] == date_val]['close']
+        if not price_at_date.empty:
+            y_val = price_at_date.iloc[0]
+            fig.add_trace(go.Scatter(
+                x=[date_val],
+                y=[y_val],
+                mode='markers+text',
+                marker=dict(size=10, color=color, symbol='diamond'),
+                text=[label],
+                textposition='top center',
+                textfont=dict(size=10, color=color),
+                name=label,
+                showlegend=False,
+                hoverinfo='skip'
+            ), row=1, col=1)
 
     # Layout generale
     fig.update_xaxes(title_text="Data", row=4, col=1)
