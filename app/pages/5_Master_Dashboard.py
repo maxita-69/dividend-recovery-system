@@ -363,6 +363,10 @@ def render_frame_dividend_focus(stock, df_prices, df_divs):
     selected_label = st.selectbox("Seleziona Dividendo", list(div_options.keys()), key="frame3_div_select")
     selected_date = div_options[selected_label]
 
+    # Converti date in datetime per compatibilità con Plotly
+    if not isinstance(selected_date, datetime):
+        selected_date = datetime.combine(selected_date, datetime.min.time())
+
     # Parametri intervallo (opzionale - avanzato)
     with st.expander("⚙️ Configurazione Intervallo Temporale"):
         col_a, col_b = st.columns(2)
