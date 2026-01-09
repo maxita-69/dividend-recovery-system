@@ -377,9 +377,13 @@ def render_frame_dividend_focus(stock, df_prices, df_divs):
     start_date = selected_date - timedelta(days=days_before)
     end_date = selected_date + timedelta(days=days_after)
 
+    # Converti date per confronto con DataFrame (date objects)
+    start_date_cmp = start_date.date() if isinstance(start_date, datetime) else start_date
+    end_date_cmp = end_date.date() if isinstance(end_date, datetime) else end_date
+
     dfp = df_prices[
-        (df_prices['date'] >= start_date) &
-        (df_prices['date'] <= end_date)
+        (df_prices['date'] >= start_date_cmp) &
+        (df_prices['date'] <= end_date_cmp)
     ].copy()
 
     if dfp.empty:
@@ -396,10 +400,12 @@ def render_frame_dividend_focus(stock, df_prices, df_divs):
     # METRICHE CHIAVE POST-DIVIDENDO
     # =============================================================================
 
-    # Trova prezzi chiave
-    prices_before = dfp_ind[dfp_ind['date'] < selected_date]
-    prices_after = dfp_ind[dfp_ind['date'] > selected_date]
-    price_on_ex = dfp_ind[dfp_ind['date'] == selected_date]
+    # Trova prezzi chiave (confronta con date object)
+    selected_date_cmp = selected_date.date() if isinstance(selected_date, datetime) else selected_date
+
+    prices_before = dfp_ind[dfp_ind['date'] < selected_date_cmp]
+    prices_after = dfp_ind[dfp_ind['date'] > selected_date_cmp]
+    price_on_ex = dfp_ind[dfp_ind['date'] == selected_date_cmp]
 
     price_before = prices_before['close'].iloc[-1] if len(prices_before) > 0 else None
     price_after = prices_after['close'].iloc[0] if len(prices_after) > 0 else None
@@ -407,7 +413,7 @@ def render_frame_dividend_focus(stock, df_prices, df_divs):
     price_ex = price_on_ex['close'].iloc[0] if len(price_on_ex) > 0 else None
 
     # Importo dividendo
-    div_amount = df_divs_sorted[df_divs_sorted['ex_date'] == selected_date]['amount'].iloc[0]
+    div_amount = df_divs_sorted[df_divs_sorted['ex_date'] == selected_date_cmp]['amount'].iloc[0]
 
     # Metriche
     col1, col2, col3, col4 = st.columns(4)
