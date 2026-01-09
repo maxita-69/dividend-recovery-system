@@ -43,6 +43,9 @@ require_authentication()
 @st.cache_resource
 def get_database_engine():
     """Cache engine, NON la sessione"""
+    # Calcola percorso direttamente nella funzione cached
+    current_file = Path(__file__).resolve()
+    project_root = current_file.parent.parent.parent
     db_path = project_root / "data" / "dividend_recovery.db"
     return create_engine(f"sqlite:///{db_path}", echo=False)
 
