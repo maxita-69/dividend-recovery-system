@@ -484,9 +484,8 @@ def render_frame_dividend_focus(stock, df_prices, df_divs):
 
     # Marker Ex-Dividend (stella dorata)
     if price_ex:
-        selected_date_dt = ensure_datetime(selected_date)
         fig.add_trace(go.Scatter(
-            x=[selected_date_dt],
+            x=[pd.Timestamp(selected_date)],
             y=[price_ex],
             mode='markers',
             marker=dict(size=15, color='gold', symbol='star', line=dict(color='black', width=1)),
@@ -563,11 +562,11 @@ def render_frame_dividend_focus(stock, df_prices, df_divs):
     # -------------------------
     # LINEE VERTICALI SINCRONIZZATE
     # -------------------------
-    # Converti tutte le date in datetime per Plotly (add_vline richiede datetime, non date)
+    # Converti date in pd.Timestamp per compatibilità con Plotly
     special_dates = {
-        f"D-{days_before}": ensure_datetime(start_date),
-        "D-DAY": ensure_datetime(selected_date),
-        f"D+{days_after}": ensure_datetime(end_date)
+        f"D-{days_before}": pd.Timestamp(start_date),
+        "D-DAY": pd.Timestamp(selected_date),
+        f"D+{days_after}": pd.Timestamp(end_date)
     }
 
     for label, d in special_dates.items():
