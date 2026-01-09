@@ -349,8 +349,8 @@ def render_frame_dividend_focus(stock, df_prices, df_divs):
         st.info("Servono prezzi e dividendi per questa analisi.")
         return
 
-    # Selezione dividendo
-    df_divs_sorted = df_divs.sort_values('ex_date')
+    # Selezione dividendo (ordinamento discendente: più recente prima)
+    df_divs_sorted = df_divs.sort_values('ex_date', ascending=False)
     div_options = {
         f"{row['ex_date']} – €{row['amount']:.3f}": row['ex_date']
         for _, row in df_divs_sorted.iterrows()
@@ -373,23 +373,40 @@ def render_frame_dividend_focus(stock, df_prices, df_divs):
     start_date = selected_date - timedelta(days=days_before)
     end_date = selected_date + timedelta(days=days_after)
 
+    # IMPORTANTE: Caricare dati extra prima per calcolare correttamente gli indicatori tecnici
+    # Gli indicatori come RSI e Stocastico richiedono ~20 giorni di storico
+    buffer_days = 60  # Buffer per calcolo indicatori
+    start_date_with_buffer = selected_date - timedelta(days=days_before + buffer_days)
+
     # Converti date per confronto con DataFrame (date objects)
+    start_date_buffer_cmp = start_date_with_buffer.date() if isinstance(start_date_with_buffer, datetime) else start_date_with_buffer
     start_date_cmp = start_date.date() if isinstance(start_date, datetime) else start_date
     end_date_cmp = end_date.date() if isinstance(end_date, datetime) else end_date
 
-    dfp = df_prices[
-        (df_prices['date'] >= start_date_cmp) &
+    # Carica dati con buffer per calcolo indicatori
+    dfp_full = df_prices[
+        (df_prices['date'] >= start_date_buffer_cmp) &
         (df_prices['date'] <= end_date_cmp)
     ].copy()
 
-    if dfp.empty:
+    if dfp_full.empty:
         st.warning("⚠️ Nessun dato disponibile nell'intervallo selezionato.")
         return
 
-    # Calcolo indicatori
-    dfp_ind = calculate_all_indicators(dfp)
-    if dfp_ind is None:
+    # Calcolo indicatori su dataset completo (con buffer)
+    dfp_ind_full = calculate_all_indicators(dfp_full)
+    if dfp_ind_full is None:
         st.error("Errore nel calcolo degli indicatori.")
+        return
+
+    # Filtra per intervallo visualizzazione (D-10 → D+45)
+    dfp_ind = dfp_ind_full[
+        (dfp_ind_full['date'] >= start_date_cmp) &
+        (dfp_ind_full['date'] <= end_date_cmp)
+    ].copy()
+
+    if dfp_ind.empty:
+        st.warning("⚠️ Nessun dato disponibile nell'intervallo di visualizzazione.")
         return
 
     # =============================================================================
