@@ -428,6 +428,75 @@ def render_frame_dividend_focus(stock, df_prices, df_divs):
     # Importo dividendo
     div_amount = df_divs_sorted[df_divs_sorted['ex_date'] == selected_date_cmp]['amount'].iloc[0]
 
+    # =============================================================================
+    # SPIEGAZIONE METRICHE
+    # =============================================================================
+    with st.expander("ℹ️ Spiegazione Metriche Chiave"):
+        st.markdown("""
+        ### 📊 Come vengono calcolati i 4 numeri fondamentali
+
+        #### 1️⃣ **Drop Ex-Date** (Calo percentuale all'ex-dividend)
+        ```
+        Formula: ((P_D0 - P_D-1) / P_D-1) × 100
+        ```
+        - **P_D-1**: Prezzo di chiusura il giorno PRIMA dell'ex-dividend date
+        - **P_D0**: Prezzo di chiusura il primo giorno DOPO l'ex-dividend date
+        - **Significato**: Misura il calo immediato del prezzo quando il titolo "stacca" il dividendo
+        - **Delta**: Mostra il calo assoluto in euro (€)
+        - **Interpretazione**: Teoricamente dovrebbe essere vicino al Dividend Yield, ma spesso è inferiore
+
+        ---
+
+        #### 2️⃣ **Dividend Yield** (Rendimento del dividendo)
+        ```
+        Formula: (Dividendo / P_D-1) × 100
+        ```
+        - **Dividendo**: Importo del dividendo distribuito (in €)
+        - **P_D-1**: Prezzo di chiusura il giorno prima dell'ex-dividend
+        - **Significato**: Rendimento percentuale che l'investitore ottiene dal dividendo
+        - **Delta**: Mostra l'importo del dividendo in euro (€)
+        - **Interpretazione**: Più alto è meglio, ma va confrontato con il rischio e la volatilità
+
+        ---
+
+        #### 3️⃣ **Recovery %** (Percentuale di recupero del gap)
+        ```
+        Formula: ((P_attuale - P_D0) / (P_D-1 - P_D0)) × 100
+        ```
+        - **P_attuale**: Prezzo di chiusura più recente disponibile
+        - **P_D0**: Prezzo dopo il dividendo
+        - **P_D-1**: Prezzo prima del dividendo
+        - **Significato**: Misura quanto il prezzo ha recuperato del "gap" creato dal dividendo
+        - **Delta**: Recupero in euro dal prezzo post-dividendo
+        - **Interpretazione**:
+          - **0%**: Nessun recupero (prezzo ancora a P_D0)
+          - **50%**: Recuperato metà del gap
+          - **100%**: Recupero completo (prezzo tornato a P_D-1)
+          - **>100%**: Prezzo salito oltre il livello pre-dividendo
+
+        ---
+
+        #### 4️⃣ **Giorni da Ex-Date** (Tempo trascorso)
+        ```
+        Formula: Data_attuale - Ex_Date
+        ```
+        - **Data_attuale**: Ultima data disponibile nel dataset
+        - **Ex_Date**: Data dell'ex-dividend
+        - **Significato**: Giorni trascorsi dall'ex-dividend date
+        - **Interpretazione**: Permette di valutare se il recupero è rapido o lento
+          - Recupero 100% in 10 giorni = molto rapido ✅
+          - Recupero 50% in 30 giorni = lento ⚠️
+
+        ---
+
+        ### 💡 **Come usare questi dati per il trading:**
+
+        1. **Confronta Drop vs Yield**: Se il drop è molto inferiore al yield, è un segnale positivo
+        2. **Monitora Recovery %**: Un recupero rapido (>50% in 10 giorni) indica forza del titolo
+        3. **Analizza pattern storici**: Usa la pagina "Pattern Analysis" per vedere il comportamento storico
+        4. **Timing**: Compra PRIMA dell'ex-date se prevedi recupero rapido, DOPO se il drop è alto
+        """)
+
     # Metriche
     col1, col2, col3, col4 = st.columns(4)
 
