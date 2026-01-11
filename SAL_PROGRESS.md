@@ -681,7 +681,7 @@ SAL 6 (Automation):        ░░░░░░░░░░░░░░░░░�
 **Decisioni prese**:
 1. ✅ Confermato passaggio completo a IBKR per dati storici
 2. ✅ Installato `ib_insync` (wrapper moderno, `ibapi` aveva errori installazione)
-3. ⏸️ Test connessione IB Gateway - BLOCCATO: porta 4002 rifiuta connessione
+3. ⏸️ Test connessione IB Gateway - BLOCCATO
 
 **IBKR API Capabilities verificate**:
 - ✅ Dati storici OHLCV: disponibili (sostituisce Yahoo)
@@ -689,11 +689,32 @@ SAL 6 (Automation):        ░░░░░░░░░░░░░░░░░�
 - ⚠️ News real-time: Benzinga gratis, altri provider a pagamento
 
 **Files creati**:
-- `test_ib_gateway.py` - Script test connessione con ib_insync
+- `test_ib_gateway.py` - Script test connessione base
+- `diagnose_ib_connection.py` - Script diagnostica completa
 
-**Stato**: IN ATTESA conferma porta IB Gateway da Max
+**Diagnostica effettuata**:
+- ❌ Porta 4002 NON è in ascolto (socket test failed)
+- ❌ Testati client IDs: 0, 1, 2, 100, 999 - tutti falliti
+- ❌ Testato 'localhost' vs '127.0.0.1' - stesso risultato
+- 🔍 Errore: `[Errno 111] Connect call failed` = porta non risponde
 
-**Next step**: Verificare porta IB Gateway e completare connessione test
+**Root cause identificata**:
+IB Gateway non sta rispondendo sulla porta 4002. Possibili cause:
+- IB Gateway non è in esecuzione
+- IB Gateway non è completamente loggato/connesso ai server IBKR
+- IB Gateway è configurato su porta diversa da 4002
+
+**Checklist per risolvere**:
+- [ ] Verificare IB Gateway in esecuzione (processo attivo)
+- [ ] Verificare stato "Connected" in verde nella GUI di IB Gateway
+- [ ] Verificare login completato con username/password
+- [ ] Controllare API Settings: Socket port = 4002
+- [ ] Verificare "Master API client ID" (deve essere vuoto o compatibile)
+- [ ] Riavviare IB Gateway dopo modifiche impostazioni
+
+**Stato**: 🛑 BLOCCATO - In attesa che IB Gateway sia attivo e connesso
+
+**Next step**: Avviare IB Gateway, completare login, verificare "Connected", eseguire `diagnose_ib_connection.py`
 
 ---
 
