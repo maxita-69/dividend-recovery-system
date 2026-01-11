@@ -25,6 +25,7 @@ from database.models import Base, Stock, Dividend, PriceData, DataCollectionLog
 def create_database(db_path='data/dividend_recovery.db'):
     """Crea database e tabelle se non esistono"""
     Path(db_path).parent.mkdir(parents=True, exist_ok=True)
+    print("USING DB:", Path(db_path).resolve())
     
     engine = create_engine(f'sqlite:///{db_path}', echo=False)
     Base.metadata.create_all(engine)
