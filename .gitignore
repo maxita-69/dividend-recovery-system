@@ -19,44 +19,41 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-MANIFEST
 
 # Virtual Environment
 venv/
-env/
 ENV/
-.venv
+env/
 
-# IDE
+# IDEs
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
+# Database
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
 # Logs
 logs/
 *.log
-
-# Database
-*.db-journal
 
 # OS
 .DS_Store
 Thumbs.db
 
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# pytest
-.pytest_cache/
-.coverage
-htmlcov/
-
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
 # Streamlit
 .streamlit/secrets.toml
+
+# Data files
+data/*.csv
+data/*.xlsx
+data/*.parquet
+
+# Temp files
+*.tmp
+*.bak
