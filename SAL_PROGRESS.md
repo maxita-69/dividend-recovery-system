@@ -672,5 +672,30 @@ SAL 6 (Automation):        ░░░░░░░░░░░░░░░░░�
 
 ---
 
+## 📝 LOG SESSIONI
+
+### Sessione 2026-01-11 - Migrazione IBKR API
+
+**Obiettivo**: Passare da Yahoo Finance a Interactive Brokers API per download dati
+
+**Decisioni prese**:
+1. ✅ Confermato passaggio completo a IBKR per dati storici
+2. ✅ Installato `ib_insync` (wrapper moderno, `ibapi` aveva errori installazione)
+3. ⏸️ Test connessione IB Gateway - BLOCCATO: porta 4002 rifiuta connessione
+
+**IBKR API Capabilities verificate**:
+- ✅ Dati storici OHLCV: disponibili (sostituisce Yahoo)
+- ❌ Indicatori tecnici pre-calcolati: NON disponibili (vanno calcolati localmente)
+- ⚠️ News real-time: Benzinga gratis, altri provider a pagamento
+
+**Files creati**:
+- `test_ib_gateway.py` - Script test connessione con ib_insync
+
+**Stato**: IN ATTESA conferma porta IB Gateway da Max
+
+**Next step**: Verificare porta IB Gateway e completare connessione test
+
+---
+
 *Ultima modifica: 2026-01-11*
-*Prossimo aggiornamento: Dopo download USA stocks*
+*Prossimo aggiornamento: Dopo connessione IBKR confermata*
