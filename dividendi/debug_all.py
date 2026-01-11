@@ -25,7 +25,7 @@ from dividend_calendar import (
     get_session
 )
 
-from src.database.models import Stock
+from database.models import Stock
 
 # -------------------------------------------------------------------
 #  COLORI ANSI
