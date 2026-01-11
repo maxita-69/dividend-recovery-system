@@ -235,39 +235,122 @@ def main():
     "IP.MI",        # Interpump Group
 
     # --- TITOLI USA (Dividend Aristocrats & High Quality) ---
-    # Healthcare & Consumer Staples
+    # Healthcare & Pharma
     "JNJ",          # Johnson & Johnson - Dividend Aristocrat
     "PG",           # Procter & Gamble - Dividend Aristocrat
+    "ABBV",         # AbbVie - High yield
+    "PFE",          # Pfizer
+    "BMY",          # Bristol-Myers Squibb
+    "MRK",          # Merck & Co
+
+    # Consumer Staples & Discretionary
     "KO",           # Coca-Cola - Dividend Aristocrat
     "PEP",          # PepsiCo - Dividend Aristocrat
     "MCD",          # McDonald's - Dividend Aristocrat
-
-    # Energy
-    "XOM",          # Exxon Mobil - Dividend Aristocrat
-    "CVX",          # Chevron - Dividend Aristocrat
+    "MO",           # Altria Group
+    "KMB",          # Kimberly-Clark
+    "GIS",          # General Mills
+    "WEN",          # Wendy's
+    "CRI",          # Carter's
 
     # Retail
     "WMT",          # Walmart - Dividend Aristocrat
     "TGT",          # Target - Dividend Aristocrat
     "HD",           # Home Depot
+    "BBY",          # Best Buy
+
+    # Energy
+    "XOM",          # Exxon Mobil - Dividend Aristocrat
+    "CVX",          # Chevron - Dividend Aristocrat
+    "COP",          # ConocoPhillips
+    "EOG",          # EOG Resources
+    "SLB",          # Schlumberger
+    "HAL",          # Halliburton
+    "CTRA",         # Coterra Energy
+    "APA",          # APA Corporation
 
     # Telecom (High Yield)
     "T",            # AT&T - High yield
     "VZ",           # Verizon - Stable dividend
 
-    # Pharma
-    "ABBV",         # AbbVie - High yield
-    "PFE",          # Pfizer
-
-    # Financials
+    # Financials & Banks
     "JPM",          # JP Morgan Chase
     "BAC",          # Bank of America
+    "RF",           # Regions Financial
+    "FITB",         # Fifth Third Bancorp
+    "CMA",          # Comerica
+    "COLB",         # Columbia Banking System
+    "CVBF",         # CVB Financial
+    "BANR",         # Banner Corporation
+    "NWBI",         # Northwest Bancshares
+    "CHCO",         # City Holding Company
+    "STBA",         # S&T Bancorp
+    "GABC",         # German American Bancorp
+    "CINF",         # Cincinnati Financial
+    "RDN",          # Radian Group
+
+    # Industrials & Manufacturing
+    "LMT",          # Lockheed Martin
+    "UPS",          # United Parcel Service
+    "FAST",         # Fastenal
+    "ADM",          # Archer-Daniels-Midland
+    "PKG",          # Packaging Corporation of America
+    "AMCR",         # Amcor
+    "PH",           # Parker-Hannifin
+    "WHR",          # Whirlpool
+    "AFAM",         # Almost Family (Artisan)
+    "ETD",          # Ethan Allen
+    "OXM",          # Oxford Industries
 
     # Technology (Dividend Payers)
     "MSFT",         # Microsoft
     "AAPL",         # Apple
     "INTC",         # Intel
     "IBM",          # IBM - Long dividend history
+    "CSCO",         # Cisco Systems
+    "TXN",          # Texas Instruments
+    "PAYX",         # Paychex
+    "SWKS",         # Skyworks Solutions
+    "NSP",          # Insperity
+
+    # REITs & Investments
+    "TROW",         # T. Rowe Price
+    "UNM",          # Unum Group
+    "JHG",          # Janus Henderson Group
+    "ALV",          # Autoliv
+    "IPAR",         # Inter Parfums
+
+    # Materials & Chemicals
+    "LYB",          # LyondellBasell
+    "CF",           # CF Industries
+    "FMC",          # FMC Corporation
+
+    # Communication & Media
+    "NXST",         # Nexstar Media Group
+    "MCS",          # Marcus Corporation
+    "SIG",          # Signet Jewelers
+    "CNS",          # Cohen & Steers
+
+    # Specialty Finance & Services
+    "OZK",          # Bank OZK
+    "MSM",          # MSC Industrial
+    "IBOC",         # International Bancshares
+    "WU",           # Western Union
+    "DH",           # Definitive Healthcare (Robert Half?)
+    "GVMX",         # GoldMining Inc (?)
+    "OFG",          # OFG Bancorp
+    "FCF",          # First Commonwealth Financial
+    "KFRC",         # Kforce
+    "CNA",          # CNA Financial
+    "CPF",          # Central Pacific Financial
+    "TRFF",         # Tariff (?)
+    "SRCE",         # 1st Source Corporation
+    "PRFC",         # Premier Financial
+    "CWENA",        # Clearway Energy Class A
+
+    # Mixed/Other
+    "F",            # Ford Motor Company
+    "EWBC",         # East West Bancorp
 ]
 
 
