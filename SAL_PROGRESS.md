@@ -672,5 +672,51 @@ SAL 6 (Automation):        ░░░░░░░░░░░░░░░░░�
 
 ---
 
+## 📝 LOG SESSIONI
+
+### Sessione 2026-01-11 - Migrazione IBKR API
+
+**Obiettivo**: Passare da Yahoo Finance a Interactive Brokers API per download dati
+
+**Decisioni prese**:
+1. ✅ Confermato passaggio completo a IBKR per dati storici
+2. ✅ Installato `ib_insync` (wrapper moderno, `ibapi` aveva errori installazione)
+3. ⏸️ Test connessione IB Gateway - BLOCCATO
+
+**IBKR API Capabilities verificate**:
+- ✅ Dati storici OHLCV: disponibili (sostituisce Yahoo)
+- ❌ Indicatori tecnici pre-calcolati: NON disponibili (vanno calcolati localmente)
+- ⚠️ News real-time: Benzinga gratis, altri provider a pagamento
+
+**Files creati**:
+- `test_ib_gateway.py` - Script test connessione base
+- `diagnose_ib_connection.py` - Script diagnostica completa
+
+**Diagnostica effettuata**:
+- ❌ Porta 4002 NON è in ascolto (socket test failed)
+- ❌ Testati client IDs: 0, 1, 2, 100, 999 - tutti falliti
+- ❌ Testato 'localhost' vs '127.0.0.1' - stesso risultato
+- 🔍 Errore: `[Errno 111] Connect call failed` = porta non risponde
+
+**Root cause identificata**:
+IB Gateway non sta rispondendo sulla porta 4002. Possibili cause:
+- IB Gateway non è in esecuzione
+- IB Gateway non è completamente loggato/connesso ai server IBKR
+- IB Gateway è configurato su porta diversa da 4002
+
+**Checklist per risolvere**:
+- [ ] Verificare IB Gateway in esecuzione (processo attivo)
+- [ ] Verificare stato "Connected" in verde nella GUI di IB Gateway
+- [ ] Verificare login completato con username/password
+- [ ] Controllare API Settings: Socket port = 4002
+- [ ] Verificare "Master API client ID" (deve essere vuoto o compatibile)
+- [ ] Riavviare IB Gateway dopo modifiche impostazioni
+
+**Stato**: 🛑 BLOCCATO - In attesa che IB Gateway sia attivo e connesso
+
+**Next step**: Avviare IB Gateway, completare login, verificare "Connected", eseguire `diagnose_ib_connection.py`
+
+---
+
 *Ultima modifica: 2026-01-11*
-*Prossimo aggiornamento: Dopo download USA stocks*
+*Prossimo aggiornamento: Dopo connessione IBKR confermata*
