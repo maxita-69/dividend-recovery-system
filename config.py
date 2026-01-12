@@ -8,6 +8,11 @@ from typing import Optional
 from dataclasses import dataclass, field
 from datetime import datetime
 
+# External data providers configuration
+FMP_API_KEY = os.getenv("FMP_API_KEY")
+FMP_BASE_URL = "https://financialmodelingprep.com/api/v3"
+
+
 # Project paths
 PROJECT_ROOT = Path(__file__).parent
 DATA_DIR = PROJECT_ROOT / "data"
