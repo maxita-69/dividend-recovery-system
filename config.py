@@ -10,7 +10,8 @@ from datetime import datetime
 
 # External data providers configuration
 FMP_API_KEY = os.getenv("FMP_API_KEY")
-FMP_BASE_URL = "https://financialmodelingprep.com/api/v3"
+FMP_BASE_URL = "https://financialmodelingprep.com/stable"
+DATA_PROVIDER = os.getenv("DATA_PROVIDER", "FMP")  # Default provider: FMP
 
 
 # Project paths

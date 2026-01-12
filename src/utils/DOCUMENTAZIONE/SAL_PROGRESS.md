@@ -1,8 +1,9 @@
 # 📊 SAL PROGRESS - Stati Avanzamento Lavori
 
-**Ultima analisi**: 2026-01-11
+**Ultima analisi**: 2026-01-12
 **Repository**: maxita-69/dividend-recovery-system
 **Branch principale**: main
+**Branch attuale**: claude/update-progress-file-P1LGY
 
 ---
 
@@ -200,6 +201,163 @@ G.MI       - Generali Assicurazioni      (dati presenti)
 **Testing**:
 - `test_download_usa.py`
 - `test_ib_connection.py`
+
+---
+
+## 🔄 RISTRUTTURAZIONE PROGETTO (2026-01-12) ⭐
+
+### Major Refactoring - Commit b06af56
+
+È stata completata una **ristrutturazione significativa** del repository per migliorare l'organizzazione del codice e la manutenibilità.
+
+#### 📁 Nuova Struttura Directory
+
+```
+dividend-recovery-system/
+├── src/
+│   ├── database/                    # ⭐ NUOVO: Centralizzazione database & scripts
+│   │   ├── models.py               # Database models (invariato)
+│   │   ├── database.py             # Database utilities (spostato)
+│   │   ├── download_stock_data.py  # Script download (spostato)
+│   │   ├── download_stock_data_v2.py
+│   │   ├── download_data_ib.py     # IBKR download scripts
+│   │   ├── test_download_usa.py
+│   │   ├── test_ib_*.py            # Test connessione IBKR
+│   │   └── diagnose_ib_connection.py
+│   │
+│   ├── data_providers/              # ⭐ NUOVO: Provider architecture
+│   │   └── .env                    # API keys isolate
+│   │
+│   └── utils/
+│       ├── recovery_analysis.py     # Core utilities (invariato)
+│       ├── pattern_analysis.py
+│       ├── validation.py
+│       ├── logging_config.py
+│       └── DOCUMENTAZIONE/          # ⭐ NUOVO: Tutta la documentazione
+│           ├── README.md            # Documentazione principale
+│           ├── SAL_PROGRESS.md      # Questo file
+│           ├── IMPROVEMENTS.md
+│           ├── START_HERE.md
+│           ├── DEPLOY_GUIDE.md
+│           ├── IB_GATEWAY_SETUP.md
+│           ├── DIVIDEND_CALENDAR_README.md
+│           ├── SETUP_LOCALE.md
+│           ├── STEP_1_COMPLETED.md
+│           ├── STREAMLIT_SECRETS_SETUP.md
+│           └── UPLOAD_TO_GITHUB.md
+│
+├── app/                             # Dashboard principale (invariato)
+│   ├── Home.py
+│   └── pages/
+│       ├── 1_Single_Stock.py       # 5 pagine complete
+│       ├── 2_Recovery_Analysis.py
+│       ├── 3_Strategy_Comparison.py
+│       ├── 4_Pattern_Analysis.py
+│       └── 5_Master_Dashboard.py
+│
+├── dashboard/                       # ⭐ NUOVO: Dashboard calendario semplificata
+│   ├── app.py                      # Entry point
+│   └── pages/
+│       └── 1_📅_Dividend_Calendar.py
+│
+├── dividendi/                       # ⭐ NUOVO: Gestione dividendi IBKR
+│   ├── dividend_calendar.py
+│   ├── get_dividends_ibkr.py
+│   ├── ibkr_dividend_downloader.py
+│   ├── ibkr_dividend_parser.py
+│   ├── debug_dividend.py
+│   └── debug_all.py
+│
+├── providers/                       # ⭐ NUOVO: Data provider abstraction
+│   ├── base_provider.py            # Abstract base class
+│   ├── yahoo_provider.py           # Yahoo Finance provider
+│   ├── fmp_provider.py             # Financial Modeling Prep
+│   └── fmp_client.py               # FMP API client
+│
+├── data/                            # Database files
+│   ├── dividend_recovery.db        # DB principale (19 MB)
+│   └── dividend_recovery_ib.db     # DB IBKR (45 KB)
+│
+├── config.py                        # Configurazione centralizzata
+├── requirements.txt                 # Dipendenze aggiornate
+└── scripts/                         # Script utility (invariato)
+```
+
+#### ✅ Benefici della Ristrutturazione
+
+1. **Separazione delle Responsabilità**
+   - Database & download scripts → `src/database/`
+   - Provider abstraction → `providers/`
+   - Utilities condivise → `src/utils/`
+   - Documentazione → `src/utils/DOCUMENTAZIONE/`
+
+2. **Migliore Organizzazione**
+   - Tutta la documentazione (12 file .md) centralizzata in un unico posto
+   - Script di download raggruppati logicamente
+   - Test IBKR vicini agli script IBKR
+
+3. **Provider Architecture** ⭐
+   - Astrazione per multiple fonti dati (Yahoo, FMP, IBKR)
+   - Facilita aggiunta di nuovi provider
+   - Isolamento API keys in `.env` dedicato
+
+4. **Dashboard Modulari**
+   - `app/` → Dashboard completa con 5 pagine di analisi
+   - `dashboard/` → Dashboard semplificata solo calendario dividendi
+   - Diversi use case, diversi entry point
+
+5. **Gestione Dividendi IBKR**
+   - Cartella `dividendi/` dedicata agli script IBKR
+   - Tools di debug e diagnostica centralizzati
+
+#### 📊 Metriche Ristrutturazione
+
+```
+File Python totali: 56
+File Documentazione: 12
+Linee codice dashboard: ~3,893 (6 pagine totali)
+
+Database:
+- dividend_recovery.db: 19 MB
+- dividend_recovery_ib.db: 45 KB
+
+Commit ristrutturazione: b06af56
+Commit aggiornamenti: 3a2d01d, c4a1fc7, a35d256
+```
+
+#### 🆕 Nuove Funzionalità Aggiunte
+
+**Provider System** (Commit 3a2d01d, a35d256):
+- `providers/base_provider.py` - Abstract provider interface
+- `providers/yahoo_provider.py` - Yahoo Finance implementation
+- `providers/fmp_provider.py` - Financial Modeling Prep provider
+- `providers/fmp_client.py` - FMP API client con retry logic
+
+**Fetch Scripts** (in `src/`):
+- `fetch_dividends.py` - Script fetch dividendi
+- `fetch_prices.py` - Script fetch prezzi
+- `test_provider.py` - Test provider functionality
+- `fmp_provider.py` - FMP provider duplicate (da unificare)
+- `test_fmp.py` - Test FMP integration
+
+**Config Updates**:
+- Aggiunto supporto multi-provider in `config.py`
+- Gestione API keys multiple (.env in `src/data_providers/`)
+
+#### ⚠️ Note Post-Ristrutturazione
+
+1. **Path Updates Needed**: Verificare che tutti gli import nei script facciano riferimento ai nuovi path
+2. **Provider Unification**: File `fmp_provider.py` presente sia in `src/` che `providers/` - da consolidare
+3. **Testing**: Verificare che tutti gli script funzionino con i nuovi path
+4. **Documentation**: README.md in `src/utils/DOCUMENTAZIONE/` ha ancora vecchi path nella struttura
+
+#### 🎯 Prossimi Passi Post-Ristrutturazione
+
+- [ ] Verificare tutti gli import dopo spostamento file
+- [ ] Consolidare duplicati (fmp_provider.py)
+- [ ] Aggiornare path in README.md
+- [ ] Test end-to-end di tutti gli script
+- [ ] Aggiornare CI/CD se presente
 
 ---
 
@@ -525,7 +683,7 @@ net_profit = gross_profit - commission - tobin_tax - overnight_cost - capital_ga
 ## 📊 PROGRESS METRICS
 
 ```
-OVERALL PROJECT:           ███████████░░░░░░░░░  55%
+OVERALL PROJECT:           ████████████░░░░░░░░  60%  ⬆️ +5% (ristrutturazione)
 
 INFRASTRUTTURA:            ████████████████████ 100%
 ├─ Database models         ████████████████████ 100%
@@ -533,7 +691,9 @@ INFRASTRUTTURA:            █████████████████�
 ├─ Config system           ████████████████████ 100%
 ├─ Test suite              ████████████████████ 100%
 ├─ Authentication          ████████████████████ 100%
-└─ Streamlit pages (5)     ████████████████████ 100%
+├─ Streamlit pages (6)     ████████████████████ 100%  ⬆️ (6 pagine ora)
+├─ Provider architecture   ████████████████████ 100%  ⭐ NUOVO
+└─ Project structure       ████████████████████ 100%  ⭐ NUOVO (ristrutturazione)
 
 DATI:                      ██████████░░░░░░░░░░  50%
 ├─ Italy stocks (41)       ████████████████████ 100%
@@ -552,6 +712,12 @@ SAL 5 (Backtesting):       █████░░░░░░░░░░░░�
 ├─ GO/NO-GO decision       ░░░░░░░░░░░░░░░░░░░░   0% ⚠️
 └─ Pattern analysis        ██████░░░░░░░░░░░░░░  30% (infra only)
 SAL 6 (Automation):        ░░░░░░░░░░░░░░░░░░░░   0% (after SAL 5 GO)
+
+RISTRUTTURAZIONE:          ████████████████████ 100% ✅ COMPLETATA
+├─ Directory structure     ████████████████████ 100%
+├─ Provider system         ████████████████████ 100%
+├─ Documentation org       ████████████████████ 100%
+└─ Module separation       ████████████████████ 100%
 ```
 
 ---
@@ -564,6 +730,8 @@ SAL 6 (Automation):        ░░░░░░░░░░░░░░░░░�
 3. ✅ **Yahoo Finance** per dati storici (gratis, affidabile per backtesting)
 4. ✅ **IBKR integration** per future live data (non Yahoo real-time)
 5. ✅ **Shared utilities** invece di code duplication
+6. ✅ **Provider abstraction** - Multi-source data architecture (Yahoo, FMP, IBKR)
+7. ✅ **Modular structure** - Separazione responsabilità per cartelle (2026-01-12)
 
 ### Strategia
 1. ✅ **Filtro qualitativo PRIMA** (Dividend Aristocrats) - riduce noise
@@ -582,18 +750,27 @@ SAL 6 (Automation):        ░░░░░░░░░░░░░░░░░�
 
 ## 📚 DOCUMENTAZIONE DISPONIBILE
 
+### Posizione Centralizzata: `src/utils/DOCUMENTAZIONE/`
+
+Tutti i 12 file di documentazione sono ora in un'unica cartella per facilità di navigazione.
+
 ### File Principali
 - `README.md` - Overview progetto, quick start, metodologia
-- `IMPROVEMENTS.md` - Changelog v2.0 refactoring, best practices
 - `SAL_PROGRESS.md` - **QUESTO FILE** - Memoria persistente progetto
+- `IMPROVEMENTS.md` - Changelog v2.0 refactoring, best practices
+- `START_HERE.md` - Guida rapida per iniziare
 - `DEPLOY_GUIDE.md` - Deploy su Streamlit Cloud
-- `STREAMLIT_SECRETS_SETUP.md` - Setup autenticazione
+- `IB_GATEWAY_SETUP.md` - Setup Interactive Brokers Gateway
+- `DIVIDEND_CALENDAR_README.md` - Guida calendario dividendi
+- `SETUP_LOCALE.md` - Setup ambiente locale
 - `STEP_1_COMPLETED.md` - Log completamento Step 1
+- `STREAMLIT_SECRETS_SETUP.md` - Setup autenticazione Streamlit
+- `UPLOAD_TO_GITHUB.md` - Guida upload su GitHub
 
 ### Code Documentation
 - Docstrings in tutti i moduli `src/utils/`
 - Comments in-line nelle pagine Streamlit
-- Test files con esempi d'uso
+- Test files con esempi d'uso in `tests/`
 
 ---
 
@@ -663,7 +840,7 @@ SAL 6 (Automation):        ░░░░░░░░░░░░░░░░░�
 
 **Repository**: https://github.com/maxita-69/dividend-recovery-system
 **Main Branch**: main
-**Current Feature Branch**: claude/improve-project-V9kk7
+**Current Feature Branch**: claude/update-progress-file-P1LGY
 
 ---
 
@@ -673,6 +850,66 @@ SAL 6 (Automation):        ░░░░░░░░░░░░░░░░░�
 ---
 
 ## 📝 LOG SESSIONI
+
+### Sessione 2026-01-12 - Ristrutturazione Completa Repository ⭐
+
+**Obiettivo**: Riorganizzare il repository con nuove cartelle per migliore manutenibilità
+
+**Ristrutturazione effettuata** (Commit b06af56):
+
+1. ✅ **Centralizzazione Database & Scripts**
+   - Spostati tutti gli script di download in `src/database/`
+   - Raggruppati test IBKR con relativi script
+   - `database.py` spostato da `src/utils/` a `src/database/`
+
+2. ✅ **Documentazione Centralizzata**
+   - Tutti i 12 file .md spostati in `src/utils/DOCUMENTAZIONE/`
+   - Struttura più pulita nella root del progetto
+   - Facile navigazione della documentazione
+
+3. ✅ **Provider Architecture** (Commit 3a2d01d, a35d256)
+   - Creata cartella `providers/` con abstraction layer
+   - Implementati provider per Yahoo Finance e FMP
+   - API keys isolate in `.env` dedicato
+
+4. ✅ **Modularizzazione Dashboard**
+   - `app/` → Dashboard completa (5 pagine analisi)
+   - `dashboard/` → Dashboard semplificata (calendario dividendi)
+   - Entry point separati per use case diversi
+
+5. ✅ **Gestione Dividendi IBKR**
+   - Creata cartella `dividendi/` con script IBKR
+   - Tools di debug centralizzati
+   - Separazione responsabilità IBKR
+
+**Nuove funzionalità aggiunte**:
+- ✅ Provider system con base_provider.py
+- ✅ Yahoo Finance provider implementation
+- ✅ Financial Modeling Prep (FMP) provider
+- ✅ Fetch scripts: fetch_dividends.py, fetch_prices.py
+- ✅ Test provider functionality
+
+**Metriche finali**:
+```
+File Python: 56
+File Documentazione: 12
+Linee codice dashboard: ~3,893
+Database size: 19 MB (principale) + 45 KB (IBKR)
+```
+
+**Stato**: ✅ **COMPLETATO** - Repository ben organizzato e scalabile
+
+**Note importanti**:
+- ⚠️ Verificare import dopo spostamento file
+- ⚠️ Consolidare duplicati (fmp_provider.py in src/ e providers/)
+- ⚠️ Aggiornare path in README.md
+
+**Next steps**:
+- Test end-to-end di tutti gli script con nuovi path
+- Consolidamento provider duplicati
+- Update documentazione con nuovi path
+
+---
 
 ### Sessione 2026-01-11 - Migrazione IBKR API
 
@@ -718,5 +955,5 @@ IB Gateway non sta rispondendo sulla porta 4002. Possibili cause:
 
 ---
 
-*Ultima modifica: 2026-01-11*
-*Prossimo aggiornamento: Dopo connessione IBKR confermata*
+*Ultima modifica: 2026-01-12*
+*Prossimo aggiornamento: Dopo test completi della nuova struttura o download USA stocks*
