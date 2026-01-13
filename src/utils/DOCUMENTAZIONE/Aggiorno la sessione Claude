@@ -1,0 +1,6 @@
+Aggiorno la sessione Claude
+Esegui questi comandi:
+git fetch --all
+git checkout claude/multi-device-session-setup-2bvFc
+git pull origin claude/multi-device-session-setup-2bvFc
+git status
