@@ -24,6 +24,7 @@ class FMPProvider(BaseProvider):
         params["apikey"] = self.api_key
         url = f"{self.BASE_URL}/{endpoint}"
 
+        response = None
         try:
             response = requests.get(url, params=params, timeout=10)
             response.raise_for_status()
@@ -31,7 +32,10 @@ class FMPProvider(BaseProvider):
         except requests.exceptions.Timeout:
             raise RuntimeError(f"Timeout chiamata FMP per {endpoint}")
         except requests.exceptions.RequestException as e:
-            raise RuntimeError(f"Errore HTTP {response.status_code}: {response.text}") from e
+            if response is not None:
+                raise RuntimeError(f"Errore HTTP {response.status_code}: {response.text}") from e
+            else:
+                raise RuntimeError(f"Errore connessione: {str(e)}") from e
 
     def fetch_prices(self, symbol: str) -> list:
         """

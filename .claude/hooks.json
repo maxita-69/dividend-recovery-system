@@ -1,0 +1,6 @@
+{
+  "sessionStart": {
+    "command": ".claude/session-start.sh",
+    "description": "Sincronizza automaticamente il repository locale con quello remoto all'inizio di ogni sessione"
+  }
+}
