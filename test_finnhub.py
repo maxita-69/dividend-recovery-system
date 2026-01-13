@@ -1,13 +1,39 @@
 #!/usr/bin/env python3
 """
-Test script per verificare le capacità dell'API Finnhub
+Script di test STANDALONE per verificare Finnhub API
+================================================
+
+SCOPO:
+  Verificare che Finnhub supporti i titoli italiani e fornisca
+  i dati necessari (dividendi, prezzi storici, quote)
+
+COME USARE:
+  1. Esegui questo script localmente sul tuo PC (NON in sandbox)
+  2. Verifica l'output per ogni ticker
+  3. Se i dati sono OK, procediamo con l'integrazione nel sistema
+
+REQUISITI:
+  pip install requests
+
+ESECUZIONE:
+  python test_finnhub.py
 """
 import requests
 import json
 from datetime import datetime
 
+# ============================================================
+# CONFIGURAZIONE
+# ============================================================
 API_KEY = "d5hv4spr01qu7bqq9fj0d5hv4spr01qu7bqq9fjg"
 BASE_URL = "https://finnhub.io/api/v1"
+
+# Titoli italiani da testare (aggiungi i tuoi)
+TEST_TICKERS = [
+    "ENI.MI",      # Eni SpA
+    "ENEL.MI",     # Enel SpA
+    # Aggiungi altri ticker italiani che ti interessano
+]
 
 def test_dividends(symbol):
     """Test endpoint dividendi"""
@@ -33,16 +59,21 @@ def test_dividends(symbol):
             if isinstance(data, list) and len(data) > 0:
                 print(f"\n✅ Trovati {len(data)} dividendi")
                 print(f"Esempio primo dividendo: {data[0]}")
+                return True
             elif isinstance(data, list) and len(data) == 0:
                 print("⚠️  Array vuoto - nessun dividendo trovato")
+                return False
             else:
                 print(f"⚠️  Formato inaspettato: {type(data)}")
+                return False
         else:
             print(f"❌ Errore: {response.status_code}")
             print(f"Messaggio: {response.text}")
+            return False
 
     except Exception as e:
         print(f"❌ Eccezione: {str(e)}")
+        return False
 
 def test_quote(symbol):
     """Test endpoint quote corrente"""
@@ -65,14 +96,18 @@ def test_quote(symbol):
             print(f"Risposta: {json.dumps(data, indent=2)}")
             if data.get('c', 0) > 0:  # 'c' = current price
                 print(f"✅ Prezzo corrente: {data.get('c')} EUR")
+                return True
             else:
                 print("⚠️  Prezzo non disponibile o zero")
+                return False
         else:
             print(f"❌ Errore: {response.status_code}")
             print(f"Messaggio: {response.text}")
+            return False
 
     except Exception as e:
         print(f"❌ Eccezione: {str(e)}")
+        return False
 
 def test_candle(symbol):
     """Test endpoint prezzi storici (OHLCV)"""
@@ -112,14 +147,21 @@ def test_candle(symbol):
                         ts = data['t'][i]
                         date = datetime.fromtimestamp(ts).strftime('%Y-%m-%d')
                         print(f"  {date}: O={data['o'][i]}, H={data['h'][i]}, L={data['l'][i]}, C={data['c'][i]}, V={data['v'][i]}")
+                    return True
+                else:
+                    print("⚠️  Nessun record trovato")
+                    return False
             else:
                 print(f"⚠️  Status: {data.get('s')} - {data}")
+                return False
         else:
             print(f"❌ Errore: {response.status_code}")
             print(f"Messaggio: {response.text}")
+            return False
 
     except Exception as e:
         print(f"❌ Eccezione: {str(e)}")
+        return False
 
 def test_profile(symbol):
     """Test endpoint profilo azienda"""
@@ -139,39 +181,80 @@ def test_profile(symbol):
 
         if response.status_code == 200:
             data = response.json()
-            if data:
+            if data and data.get('name'):
                 print(f"✅ Nome: {data.get('name')}")
                 print(f"✅ Exchange: {data.get('exchange')}")
                 print(f"✅ Country: {data.get('country')}")
                 print(f"✅ Currency: {data.get('currency')}")
                 print(f"✅ Ticker: {data.get('ticker')}")
+                return True
             else:
                 print("⚠️  Nessun dato profilo disponibile")
+                return False
         else:
             print(f"❌ Errore: {response.status_code}")
             print(f"Messaggio: {response.text}")
+            return False
 
     except Exception as e:
         print(f"❌ Eccezione: {str(e)}")
+        return False
 
 if __name__ == "__main__":
-    print("="*60)
-    print("TEST FINNHUB API - TITOLI ITALIANI")
-    print("="*60)
+    print("\n" + "="*70)
+    print(" " * 15 + "TEST FINNHUB API - TITOLI ITALIANI")
+    print("="*70)
 
-    # Test con ENI.MI
-    test_profile("ENI.MI")
-    test_quote("ENI.MI")
-    test_candle("ENI.MI")
-    test_dividends("ENI.MI")
+    results = {}
 
-    # Test con ENEL.MI
-    print("\n\n")
-    test_profile("ENEL.MI")
-    test_quote("ENEL.MI")
-    test_candle("ENEL.MI")
-    test_dividends("ENEL.MI")
+    for ticker in TEST_TICKERS:
+        print(f"\n{'='*70}")
+        print(f" TICKER: {ticker}")
+        print("="*70)
 
-    print("\n" + "="*60)
-    print("TEST COMPLETATO")
-    print("="*60)
+        results[ticker] = {
+            'profile': False,
+            'quote': False,
+            'prices': False,
+            'dividends': False
+        }
+
+        # Test profilo
+        results[ticker]['profile'] = test_profile(ticker)
+
+        # Test quote corrente
+        results[ticker]['quote'] = test_quote(ticker)
+
+        # Test prezzi storici
+        results[ticker]['prices'] = test_candle(ticker)
+
+        # Test dividendi
+        results[ticker]['dividends'] = test_dividends(ticker)
+
+        print("\n")
+
+    # ============================================================
+    # RIEPILOGO FINALE
+    # ============================================================
+    print("\n" + "="*70)
+    print(" " * 25 + "RIEPILOGO FINALE")
+    print("="*70)
+    print("\n📊 VALUTAZIONE FINNHUB PER TITOLI ITALIANI:\n")
+
+    print("✅ = Dati disponibili e funzionanti")
+    print("❌ = Dati non disponibili o errori\n")
+    print("-" * 70)
+
+    for ticker in TEST_TICKERS:
+        print(f"\n{ticker}:")
+        print(f"  • Profilo azienda : {'✅' if results[ticker]['profile'] else '❌'}")
+        print(f"  • Quote corrente  : {'✅' if results[ticker]['quote'] else '❌'}")
+        print(f"  • Prezzi storici  : {'✅' if results[ticker]['prices'] else '❌'}")
+        print(f"  • Dividendi       : {'✅' if results[ticker]['dividends'] else '❌'}")
+
+    print("\n" + "="*70)
+    print("\n💡 PROSSIMI PASSI:")
+    print("   1. Analizza i risultati qui sopra")
+    print("   2. Se i dati sono completi → procedi con integrazione")
+    print("   3. Se mancano dati → valuta alternative o provider multipli")
+    print("\n" + "="*70 + "\n")
