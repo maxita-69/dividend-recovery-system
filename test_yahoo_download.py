@@ -60,6 +60,7 @@ TEST_TICKERS = [
     "FBK.MI",      # FinecoBank - titolo italiano
     "ENI.MI",      # Eni - per confronto
     "ENEL.MI",     # Enel - per confronto
+    "AEXAY",       # Titolo americano
 ]
 
 # Data di inizio (ultimi 2 anni)
