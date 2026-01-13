@@ -37,10 +37,15 @@ class FMPProvider(BaseProvider):
             else:
                 raise RuntimeError(f"Errore connessione: {str(e)}") from e
 
-    def fetch_prices(self, symbol: str) -> list:
+    def fetch_prices(self, symbol: str, start_date: str = None, end_date: str = None) -> list:
         """
         Scarica dati storici completi (OHLCV) per un simbolo.
         Endpoint: /historical-price-eod/full?symbol={symbol}
+
+        Args:
+            symbol: Ticker symbol
+            start_date: Data inizio (format: YYYY-MM-DD) - optional
+            end_date: Data fine (format: YYYY-MM-DD) - optional
 
         Returns:
             list: Lista di dict con campi: date, open, high, low, close, volume
@@ -49,14 +54,34 @@ class FMPProvider(BaseProvider):
 
         # FMP potrebbe restituire dict con chiave 'historical' o lista diretta
         if isinstance(data, dict):
-            return data.get("historical", [])
-        return data if isinstance(data, list) else []
+            prices = data.get("historical", [])
+        else:
+            prices = data if isinstance(data, list) else []
 
-    def fetch_dividends(self, symbol: str) -> list:
+        # Filtra per date se specificate
+        if start_date or end_date:
+            filtered = []
+            for price in prices:
+                date_str = price.get('date', '')
+                if start_date and date_str < start_date:
+                    continue
+                if end_date and date_str > end_date:
+                    continue
+                filtered.append(price)
+            return filtered
+
+        return prices
+
+    def fetch_dividends(self, symbol: str, start_date: str = None, end_date: str = None) -> list:
         """
         Scarica storico dividendi per un simbolo.
         Nota: FMP free plan potrebbe non avere questo endpoint.
         Endpoint alternativo da verificare.
+
+        Args:
+            symbol: Ticker symbol
+            start_date: Data inizio (format: YYYY-MM-DD) - optional
+            end_date: Data fine (format: YYYY-MM-DD) - optional
 
         Returns:
             list: Lista di dict con dividendi
@@ -66,8 +91,23 @@ class FMPProvider(BaseProvider):
             # Tentativo 1: endpoint dedicato dividendi (se disponibile)
             data = self._make_request(f"historical-price-full/stock_dividend/{symbol}")
             if isinstance(data, dict):
-                return data.get("historical", [])
-            return data if isinstance(data, list) else []
+                dividends = data.get("historical", [])
+            else:
+                dividends = data if isinstance(data, list) else []
+
+            # Filtra per date se specificate
+            if start_date or end_date:
+                filtered = []
+                for div in dividends:
+                    date_str = div.get('date', '')
+                    if start_date and date_str < start_date:
+                        continue
+                    if end_date and date_str > end_date:
+                        continue
+                    filtered.append(div)
+                return filtered
+
+            return dividends
         except RuntimeError:
             # Se fallisce, ritorno lista vuota (free plan limitation)
             return []

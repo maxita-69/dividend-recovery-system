@@ -10,14 +10,14 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from src.database.download_stock_data_fmp import download_tickers, create_database
+from src.database.download_stock_data_hybrid import download_tickers, create_database
 
 
 # Page config
 st.set_page_config(page_title="Download Data", page_icon="📥", layout="wide")
 
 st.title("📥 Download Stock Data")
-st.markdown("Scarica dati storici da **Financial Modeling Prep** e popolail database.")
+st.markdown("Scarica dati storici usando **provider ibridi** (FMP per USA, Yahoo per Italia).")
 
 # ---------------------------------------------------------
 # SIDEBAR - CONFIGURAZIONE
@@ -69,13 +69,13 @@ st.sidebar.markdown(f"**Ticker selezionati**: {len(selected_tickers)}")
 # MAIN CONTENT
 # ---------------------------------------------------------
 
-# Info FMP
+# Info Providers
 st.info("""
-ℹ️ **Note importanti**:
-- Free plan FMP: **250 chiamate/giorno**
+ℹ️ **Configurazione Provider**:
+- 🇺🇸 **Titoli USA** (AAPL, MSFT, ecc.) → **FMP** (250 chiamate/giorno)
+- 🇮🇹 **Titoli Italiani** (.MI) → **Yahoo Finance** (gratuito, illimitato)
 - Download incrementale: scarica solo dati mancanti
-- Ticker già aggiornati vengono skippati
-- Dividendi potrebbero non essere disponibili (free plan)
+- Ticker già aggiornati vengono skippati automaticamente
 """)
 
 # Database status
@@ -217,8 +217,9 @@ if start_download:
 st.markdown("---")
 st.markdown("""
 <div style='text-align: center; color: #666; font-size: 0.9em;'>
-    <strong>FMP Provider</strong> |
-    Free Plan: 250 API calls/day |
-    <a href="https://site.financialmodelingprep.com/developer/docs" target="_blank">Documentation</a>
+    <strong>Hybrid Providers</strong> |
+    🇺🇸 FMP (250 calls/day) + 🇮🇹 Yahoo Finance (unlimited) |
+    <a href="https://site.financialmodelingprep.com/developer/docs" target="_blank">FMP Docs</a> |
+    <a href="https://pypi.org/project/yfinance/" target="_blank">yfinance Docs</a>
 </div>
 """, unsafe_allow_html=True)
