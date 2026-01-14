@@ -36,30 +36,67 @@ Prima **VALIDARE empiricamente** (SAL 5 - Backtesting), poi automatizzare.
 
 ---
 
-## 📍 PUNTO ATTUALE (2026-01-14)
+## 📍 PUNTO ATTUALE (2026-01-14 - Aggiornato)
 
 ### Dove siamo:
-- ✅ App Streamlit completa con 7 pagine (Home, Single Stock, Recovery Analysis, Strategy Comparison, Pattern Analysis, Master Dashboard, Download Data)
+- ✅ App Streamlit completa con **8 PAGINE** (Home, Single Stock, Recovery Analysis, Strategy Comparison, Pattern Analysis, Master Dashboard, Download Data, **Database Dashboard**)
 - ✅ Database SQLite con 127 titoli, ~190k record prezzi, 2291 dividendi
 - ✅ Ultimo aggiornamento DB: 5 giorni fa
+- ✅ **COMPLETATO**: Dashboard Database per monitoraggio qualità dati
 - ⚠️ **IN CORSO**: Validazione affidabilità dati scaricati da provider esterni
 
-### Cosa stiamo facendo:
-- Test sistematici download dati da Yahoo Finance, Finnhub, FMP
-- Creazione script analisi qualità dati
-- Identificazione anomalie e gap nei dati storici
+### Cosa abbiamo completato oggi:
+- ✅ Creato PROTOCOLLO_OPERATIVO.md con regole ferree di lavoro (+ regola preview)
+- ✅ Creato REGISTRO_PROGETTO.md per tracciatura continua
+- ✅ Implementata pagina Database Dashboard (7_Database_Dashboard.py)
 
 ### Prossimi passi:
-1. Creare Dashboard Database (monitoring qualità dati) → **PROSSIMO TASK**
-2. Completare validazione provider
-3. Popolare DB con titoli USA (SCHD holdings)
-4. Iniziare SAL 5 (Backtesting) con dati validati
+1. ~~Creare Dashboard Database (monitoring qualità dati)~~ ✅ **COMPLETATO**
+2. Testare Dashboard Database e verificare funzionamento
+3. Completare validazione provider
+4. Popolare DB con titoli USA (SCHD holdings)
+5. Iniziare SAL 5 (Backtesting) con dati validati
 
 ---
 
 ## 📅 CRONOLOGIA ATTIVITÀ
 
-### **2026-01-14** - Creazione Protocollo Operativo
+### **2026-01-14 (Pomeriggio)** - Implementazione Database Dashboard
+
+**Attività**:
+- Implementata nuova pagina `7_Database_Dashboard.py` (608 righe)
+- Monitoraggio completo qualità database
+
+**Funzionalità implementate**:
+1. ✅ **KPI Metrics**: Totale titoli, ultimo aggiornamento, prezzi, dividendi
+2. ✅ **Suddivisione Mercati**: Tabella + grafico a torta
+3. ✅ **Analisi Consistenza**:
+   - Alert critici (titoli senza prezzi, prezzi anomali, dividendi incompleti)
+   - Warning (gap temporali, incongruenze date)
+   - Status OK per dati validi
+4. ✅ **Dettagli per Ticker**: Tabella completa con filtri per mercato e problemi
+5. ✅ **Log Attività**: Ultimi 20 download/operazioni
+
+**Pattern seguiti**:
+- Autenticazione con `require_authentication()`
+- Database session pattern (cached engine, nuove sessioni)
+- CSS custom per alert (critical/warning/success)
+- Layout responsive con colonne Streamlit
+- Grafici Plotly (pie chart per mercati)
+
+**Note tecniche**:
+- Classificazione indici USA (NASDAQ/DJ/SP500) segnalata come non automatica
+- Info box per avvisare che serve classificazione manuale
+- Campo `index_membership` preparato per future implementazioni
+
+**Risultato**:
+- ✅ App passa da 7 a 8 pagine
+- ✅ Completa visibilità su qualità database
+- ✅ Identificazione automatica problemi dati
+
+---
+
+### **2026-01-14 (Mattina)** - Creazione Protocollo Operativo
 
 **Attività**:
 - Creato `PROTOCOLLO_OPERATIVO.md` con regole ferree di lavoro
