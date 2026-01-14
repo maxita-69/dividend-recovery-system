@@ -1,7 +1,8 @@
 # 🤝 PROTOCOLLO OPERATIVO - Interazione Claude & User
 
 **Data creazione**: 2026-01-14
-**Versione**: 1.0
+**Versione**: 1.1
+**Ultima modifica**: 2026-01-14
 **Scopo**: Definire le regole ferree di come Claude deve lavorare su questo progetto
 
 ---
@@ -37,7 +38,13 @@ Queste regole sono **VINCOLANTI** e devono essere rispettate **SEMPRE**, senza e
    - Architettura e organizzazione del codice
    - Numero di pagine/componenti esistenti
 
-5. ✅ **Aspettare conferma ESPLICITA prima di modificare**
+5. ✅ **Mostrare PREVIEW delle modifiche (quando possibile)**
+   - Per modifiche UI/interfacce: mockup ASCII o descrizione dettagliata layout
+   - Per modifiche codice: snippet/pseudocodice delle parti principali
+   - Per modifiche database: schema delle nuove tabelle/campi
+   - Obiettivo: Far capire all'utente COME sarà il risultato finale
+
+6. ✅ **Aspettare conferma ESPLICITA prima di modificare**
    - Non procedere senza approvazione dell'utente
    - Presentare il piano d'azione
    - Attendere "OK" o "procedi" esplicito
@@ -170,6 +177,9 @@ Piano d'azione:
 2. [Step 2]
 3. [Step 3]
 
+🎨 PREVIEW delle modifiche:
+[Mockup ASCII / Descrizione dettagliata layout / Schema modifiche]
+
 Posso procedere con le modifiche?
 ```
 
@@ -250,6 +260,7 @@ Prima di modificare QUALSIASI file, verificare:
 - [ ] Ho capito come funziona attualmente?
 - [ ] Ho verificato con screenshot/documentazione?
 - [ ] Ho presentato un report completo all'utente?
+- [ ] Ho mostrato preview/mockup delle modifiche (quando possibile)?
 - [ ] Ho ricevuto conferma esplicita per procedere?
 - [ ] Ho pianificato i task con TodoWrite?
 - [ ] So esattamente cosa modificare e perché?
@@ -277,4 +288,17 @@ Prima di modificare QUALSIASI file, verificare:
 
 ---
 
-*Versione 1.0 - Creato il 2026-01-14 dopo analisi errori ricorrenti*
+## 📝 CHANGELOG
+
+### Versione 1.1 (2026-01-14)
+- Aggiunto step 5: "Mostrare PREVIEW delle modifiche (quando possibile)"
+- Aggiornato template comunicazione con sezione PREVIEW
+- Aggiornata checklist pre-modifica con controllo preview
+
+### Versione 1.0 (2026-01-14)
+- Versione iniziale
+- Creato dopo analisi errori ricorrenti (modifica senza esplorazione completa)
+
+---
+
+*Versione 1.1 - Ultimo aggiornamento: 2026-01-14*
