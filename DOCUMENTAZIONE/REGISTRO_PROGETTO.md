@@ -49,6 +49,8 @@ Prima **VALIDARE empiricamente** (SAL 5 - Backtesting), poi automatizzare.
 - ✅ Creato PROTOCOLLO_OPERATIVO.md con regole ferree di lavoro (+ regola preview)
 - ✅ Creato REGISTRO_PROGETTO.md per tracciatura continua
 - ✅ Implementata pagina Database Dashboard (7_Database_Dashboard.py)
+- ✅ Analizzata pagina Download Data e identificato bug critico
+- ✅ Fixato bug conversione date (SQLite TypeError)
 
 ### Prossimi passi:
 1. ~~Creare Dashboard Database (monitoring qualità dati)~~ ✅ **COMPLETATO**
@@ -60,6 +62,43 @@ Prima **VALIDARE empiricamente** (SAL 5 - Backtesting), poi automatizzare.
 ---
 
 ## 📅 CRONOLOGIA ATTIVITÀ
+
+### **2026-01-14 (Sera)** - Bugfix Download Data: Conversione Date
+
+**Problema rilevato**:
+- Test download titoli italiani falliva al 100% (40/40 errori)
+- Errore: `SQLite Date type only accepts Python date objects as input`
+- Provider ritornano stringhe `'2026-01-12'`, SQLAlchemy si aspetta `datetime.date` objects
+
+**Root cause**:
+- `yahoo_provider.py` e `fmp_provider.py` ritornano date come stringhe
+- `save_to_database()` passava stringhe direttamente a SQLAlchemy
+- Colonne `Date` in SQLite richiedono oggetti `datetime.date`
+
+**Fix implementato**:
+- Aggiunta funzione `parse_date()` in `download_stock_data_hybrid.py`
+- Converte stringhe `'YYYY-MM-DD'` → `datetime.date` objects
+- Gestisce None e date objects già esistenti
+- Applicata a tutti i campi date:
+  - `PriceData.date`
+  - `Dividend.ex_date`
+  - `Dividend.payment_date`
+  - `Dividend.record_date`
+- Rimosso campo `declaration_date` (non esiste nel modello)
+
+**File modificati**:
+- `src/database/download_stock_data_hybrid.py`
+  - Import aggiunto: `date` da datetime
+  - Funzione `parse_date()` aggiunta (19 righe)
+  - 4 campi date convertiti in save_to_database()
+
+**Risultato atteso**:
+- ✅ Download titoli italiani (Yahoo Finance) dovrebbe funzionare
+- ✅ Download titoli USA (FMP) dovrebbe funzionare
+- ✅ Download incrementale preservato
+- ✅ No regressioni
+
+---
 
 ### **2026-01-14 (Pomeriggio)** - Implementazione Database Dashboard
 
