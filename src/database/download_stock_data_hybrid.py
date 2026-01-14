@@ -8,7 +8,7 @@ import sys
 import time
 import random
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -18,6 +18,26 @@ sys.path.insert(0, str(project_root))
 
 from src.database.models import Base, Stock, Dividend, PriceData
 from providers.provider_manager import get_provider
+
+
+def parse_date(date_str):
+    """
+    Converte stringa 'YYYY-MM-DD' in datetime.date object.
+    Se input è None o già un date object, ritorna as-is.
+
+    Args:
+        date_str: Stringa data 'YYYY-MM-DD', date object, o None
+
+    Returns:
+        datetime.date object o None
+    """
+    if date_str is None:
+        return None
+    if isinstance(date_str, date):
+        return date_str
+    if isinstance(date_str, str):
+        return datetime.strptime(date_str, '%Y-%m-%d').date()
+    return date_str
 
 
 def create_database(db_path='data/dividend_recovery.db'):
@@ -118,7 +138,7 @@ def save_to_database(session, ticker, data):
         if not existing:
             price = PriceData(
                 stock_id=stock.id,
-                date=price_record['date'],
+                date=parse_date(price_record['date']),
                 open=price_record.get('open'),
                 high=price_record.get('high'),
                 low=price_record.get('low'),
@@ -140,11 +160,10 @@ def save_to_database(session, ticker, data):
         if not existing:
             dividend = Dividend(
                 stock_id=stock.id,
-                ex_date=div_record['ex_date'],
+                ex_date=parse_date(div_record['ex_date']),
                 amount=div_record['amount'],
-                payment_date=div_record.get('payment_date'),
-                record_date=div_record.get('record_date'),
-                declaration_date=div_record.get('declaration_date')
+                payment_date=parse_date(div_record.get('payment_date')),
+                record_date=parse_date(div_record.get('record_date'))
             )
             session.add(dividend)
             dividends_saved += 1
