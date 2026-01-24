@@ -23,6 +23,12 @@ sys.path.insert(0, str(project_root / 'app'))
 from src.database.models import Stock, Dividend, PriceData
 from src.utils import get_database_session, get_logger, OperationLogger
 from src.utils.database import get_price_dataframe
+from src.utils.clustering import (
+    analyze_dividend_clusters,
+    get_cluster_interpretation,
+    ClusterMethod,
+    ClusteringResult
+)
 from config import get_config
 from auth import require_authentication
 
@@ -580,7 +586,8 @@ def main():
             "Metriche Post-Dividendo",
             "Statistiche Affidabilità",
             "Interpretazione Automatica",
-            "Comportamento Medio"
+            "Comportamento Medio",
+            "Clustering Predittivo"
         ])
 
         # TAB 1: Grafico Pre/Post
@@ -772,6 +779,198 @@ def main():
                 st.write(f"Recovery medio D+5: **{rec5:.2f}%**")
                 st.write(f"Recovery medio D+10: **{rec10:.2f}%**")
                 st.write(f"Recovery medio D+30: **{rec30:.2f}%**")
+
+        # TAB 7: Clustering Predittivo
+        with tabs[6]:
+            st.header("Clustering Predittivo dei Pattern Pre-Dividend")
+            st.markdown("""
+            Questo modulo identifica **cluster di dividendi** con comportamenti simili nel periodo pre-dividend.
+            L'obiettivo è trovare pattern predittivi che correlino con la performance post-dividend.
+            """)
+
+            if len(metrics_df) < 5:
+                st.warning(f"Dati insufficienti per clustering: {len(metrics_df)} dividendi (minimo 5)")
+            else:
+                # Parametri clustering
+                col_params1, col_params2 = st.columns(2)
+                with col_params1:
+                    n_clusters_input = st.slider(
+                        "Numero cluster (0 = automatico)",
+                        min_value=0,
+                        max_value=min(8, len(metrics_df) - 1),
+                        value=0,
+                        help="Seleziona 0 per determinare automaticamente il numero ottimale di cluster"
+                    )
+                with col_params2:
+                    method_choice = st.selectbox(
+                        "Metodo clustering",
+                        ["K-Means (consigliato)", "DBSCAN"],
+                        index=0
+                    )
+
+                if st.button("Esegui Clustering", type="primary"):
+                    with st.spinner("Analisi clustering in corso..."):
+                        try:
+                            method = ClusterMethod.KMEANS if "K-Means" in method_choice else ClusterMethod.DBSCAN
+                            n_clusters = n_clusters_input if n_clusters_input > 0 else None
+
+                            result = analyze_dividend_clusters(
+                                metrics_df,
+                                method=method,
+                                n_clusters=n_clusters
+                            )
+
+                            st.session_state['clustering_result'] = result
+                            st.success(f"Clustering completato: {result.n_clusters} cluster identificati")
+
+                        except Exception as e:
+                            st.error(f"Errore durante il clustering: {e}")
+                            logger.error("Errore clustering", exc_info=True)
+
+                # Visualizza risultati se disponibili
+                if 'clustering_result' in st.session_state:
+                    result = st.session_state['clustering_result']
+
+                    # Metriche qualità
+                    st.subheader("Qualità del Clustering")
+                    col_q1, col_q2, col_q3 = st.columns(3)
+                    with col_q1:
+                        st.metric(
+                            "Silhouette Score",
+                            f"{result.silhouette:.4f}",
+                            help="Misura quanto i cluster sono ben separati (-1 a 1, più alto è meglio)"
+                        )
+                    with col_q2:
+                        st.metric(
+                            "Calinski-Harabasz",
+                            f"{result.calinski_harabasz:.2f}",
+                            help="Rapporto dispersione inter/intra-cluster (più alto è meglio)"
+                        )
+                    with col_q3:
+                        st.metric(
+                            "Cluster Trovati",
+                            result.n_clusters
+                        )
+
+                    # Feature Importance
+                    st.subheader("Importanza Features")
+                    st.markdown("Features che maggiormente discriminano i cluster:")
+                    feat_df = pd.DataFrame([
+                        {"Feature": k, "Importanza": v}
+                        for k, v in result.feature_importance.items()
+                    ])
+                    if not feat_df.empty:
+                        fig_feat = px.bar(
+                            feat_df,
+                            x="Importanza",
+                            y="Feature",
+                            orientation='h',
+                            color="Importanza",
+                            color_continuous_scale="Blues"
+                        )
+                        fig_feat.update_layout(height=300, showlegend=False)
+                        st.plotly_chart(fig_feat, use_container_width=True)
+
+                    # Statistiche per Cluster
+                    st.subheader("Performance per Cluster")
+
+                    # Tabella comparativa
+                    cluster_data = []
+                    for stats in result.cluster_stats:
+                        is_best = stats.cluster_id == result.best_cluster_id
+                        is_worst = stats.cluster_id == result.worst_cluster_id
+                        label = "BEST" if is_best else ("WORST" if is_worst else "")
+
+                        cluster_data.append({
+                            "Cluster": f"{stats.cluster_id} {label}",
+                            "N Dividendi": stats.n_samples,
+                            "Gap Medio %": f"{stats.avg_gap_pct:.2f}%",
+                            "Recovery D+5 %": f"{stats.avg_recovery_d5_pct:.2f}%" if not np.isnan(stats.avg_recovery_d5_pct) else "N/A",
+                            "Recovery D+10 %": f"{stats.avg_recovery_d10_pct:.2f}%" if not np.isnan(stats.avg_recovery_d10_pct) else "N/A",
+                            "Recovery D+15 %": f"{stats.avg_recovery_d15_pct:.2f}%" if not np.isnan(stats.avg_recovery_d15_pct) else "N/A",
+                            "% Positive D+10": f"{stats.pct_positive_d10:.1f}%",
+                            "RSI Medio D-1": f"{stats.avg_rsi_d1:.1f}" if not np.isnan(stats.avg_rsi_d1) else "N/A",
+                            "Trend Pre": f"{stats.avg_trend_pre:.4f}" if not np.isnan(stats.avg_trend_pre) else "N/A"
+                        })
+
+                    cluster_df = pd.DataFrame(cluster_data)
+                    st.dataframe(cluster_df, use_container_width=True, hide_index=True)
+
+                    # Grafico scatter dei cluster
+                    st.subheader("Visualizzazione Cluster")
+
+                    df_labeled = result.df_labeled
+                    if 'trend_pre' in df_labeled.columns and 'recovery_d10_pct' in df_labeled.columns:
+                        # Prepara dati per scatter
+                        plot_df = df_labeled[['ex_date', 'trend_pre', 'recovery_d10_pct', 'cluster', 'gap_pct']].dropna()
+                        plot_df['cluster'] = plot_df['cluster'].astype(str)
+
+                        fig_scatter = px.scatter(
+                            plot_df,
+                            x='trend_pre',
+                            y='recovery_d10_pct',
+                            color='cluster',
+                            size=plot_df['gap_pct'].abs(),
+                            hover_data=['ex_date', 'gap_pct'],
+                            title='Cluster: Trend Pre-Dividend vs Recovery D+10',
+                            labels={
+                                'trend_pre': 'Trend Pre-Dividend (slope)',
+                                'recovery_d10_pct': 'Recovery D+10 (%)',
+                                'cluster': 'Cluster'
+                            }
+                        )
+                        fig_scatter.update_layout(height=500)
+                        st.plotly_chart(fig_scatter, use_container_width=True)
+
+                    # Grafico box plot recovery per cluster
+                    if 'recovery_d10_pct' in df_labeled.columns:
+                        fig_box = px.box(
+                            df_labeled.dropna(subset=['recovery_d10_pct']),
+                            x='cluster',
+                            y='recovery_d10_pct',
+                            color='cluster',
+                            title='Distribuzione Recovery D+10 per Cluster',
+                            labels={
+                                'cluster': 'Cluster',
+                                'recovery_d10_pct': 'Recovery D+10 (%)'
+                            }
+                        )
+                        fig_box.update_layout(height=400, showlegend=False)
+                        st.plotly_chart(fig_box, use_container_width=True)
+
+                    # Interpretazioni
+                    st.subheader("Interpretazione Cluster")
+                    interpretations = get_cluster_interpretation(result)
+                    for cid, desc in sorted(interpretations.items()):
+                        if cid == result.best_cluster_id:
+                            st.success(desc)
+                        elif cid == result.worst_cluster_id:
+                            st.error(desc)
+                        else:
+                            st.info(desc)
+
+                    # Insights operativi
+                    st.subheader("Insights Operativi")
+                    best_stats = next((s for s in result.cluster_stats if s.cluster_id == result.best_cluster_id), None)
+                    worst_stats = next((s for s in result.cluster_stats if s.cluster_id == result.worst_cluster_id), None)
+
+                    if best_stats and worst_stats:
+                        st.markdown(f"""
+                        **Raccomandazioni basate sul clustering:**
+
+                        1. **Cluster {result.best_cluster_id} (BEST)**: Recovery medio D+10 = {best_stats.avg_recovery_d10_pct:.2f}%
+                           - Trend pre-dividend: {best_stats.avg_trend_pre:.4f}
+                           - RSI D-1: {best_stats.avg_rsi_d1:.1f}
+                           - Probabilità recovery positivo: {best_stats.pct_positive_d10:.1f}%
+
+                        2. **Cluster {result.worst_cluster_id} (WORST)**: Recovery medio D+10 = {worst_stats.avg_recovery_d10_pct:.2f}%
+                           - Trend pre-dividend: {worst_stats.avg_trend_pre:.4f}
+                           - RSI D-1: {worst_stats.avg_rsi_d1:.1f}
+                           - Probabilità recovery positivo: {worst_stats.pct_positive_d10:.1f}%
+
+                        **Implicazione**: Monitorare i segnali pre-dividend per identificare a quale cluster appartiene
+                        il prossimo dividendo e calibrare la strategia di conseguenza.
+                        """)
 
     else:
         st.info("Premi 'Calcola analisi' per generare le metriche e le statistiche del titolo selezionato.")
