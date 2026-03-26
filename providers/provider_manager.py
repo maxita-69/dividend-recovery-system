@@ -8,6 +8,7 @@ from providers.base_provider import BaseProvider
 from providers.yahoo_provider import YahooProvider
 from providers.fmp_provider import FMPProvider
 from providers.saxo_provider import SaxoProvider
+from providers.eodhd_provider import EODHDProvider
 
 load_dotenv()
 
@@ -17,7 +18,7 @@ def get_provider(provider_name: str = None) -> BaseProvider:
     Factory method per ottenere il provider corretto.
 
     Args:
-        provider_name: Nome del provider ('FMP', 'YAHOO', 'SAXO').
+        provider_name: Nome del provider ('FMP', 'YAHOO', 'SAXO', 'EODHD').
                       Se None, usa variabile d'ambiente DATA_PROVIDER.
 
     Returns:
@@ -44,10 +45,12 @@ def get_provider(provider_name: str = None) -> BaseProvider:
         return YahooProvider()
     elif provider_name == "SAXO":
         return SaxoProvider()
+    elif provider_name == "EODHD":
+        return EODHDProvider()
     else:
         raise ValueError(
             f"Provider '{provider_name}' non supportato. "
-            f"Provider disponibili: FMP, YAHOO, SAXO"
+            f"Provider disponibili: FMP, YAHOO, SAXO, EODHD"
         )
 
 
@@ -58,7 +61,7 @@ def list_available_providers() -> list:
     Returns:
         list: Lista di nomi provider disponibili
     """
-    return ["FMP", "YAHOO", "SAXO"]
+    return ["FMP", "YAHOO", "SAXO", "EODHD"]
 
 
 def get_current_provider_name() -> str:
