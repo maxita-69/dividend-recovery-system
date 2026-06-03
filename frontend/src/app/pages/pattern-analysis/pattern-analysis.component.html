@@ -1,0 +1,28 @@
+<div class="page-pattern">
+  <h1 class="page-title">Pattern Analysis</h1>
+
+  <mat-card class="info-card">
+    <mat-card-content>
+      <mat-icon class="info-icon">psychology</mat-icon>
+      <p>Questa pagina analizzerà i pattern di recovery post-dividendo:</p>
+      <ul>
+        <li>Drop teorico vs effettivo</li>
+        <li>Giorni di recovery medi</li>
+        <li>Volatilità pre/post stacco</li>
+        <li>Volume spike</li>
+      </ul>
+      <p class="note">In sviluppo — integrazione con <code>src/analyzers/dividend_analyzer.py</code></p>
+    </mat-card-content>
+  </mat-card>
+
+  <div class="stock-grid">
+    @for (s of stocks(); track s.id) {
+      <mat-card class="stock-chip">
+        <mat-card-content>
+          <div class="ticker">{{ s.ticker }}</div>
+          <div class="name">{{ s.name }}</div>
+        </mat-card-content>
+      </mat-card>
+    }
+  </div>
+</div>

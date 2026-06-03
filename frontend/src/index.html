@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <base href="/">
+  <title>Dividend Capture Trading System</title>
+  <meta name="description" content="Sistema di trading per la strategia dividend capture su Borsa Italiana">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'dc-bg': '#0a0e17',
+            'dc-card': '#111827',
+            'dc-border': '#1f2937',
+            'dc-text': '#f3f4f6',
+            'dc-text-secondary': '#9ca3af',
+            'dc-primary': '#1a5f2a',
+            'dc-secondary': '#2e7d32',
+            'dc-accent': '#4caf50',
+            'dc-danger': '#d32f2f',
+            'dc-warning': '#f57c00',
+            'dc-chart-grid': '#1f2937',
+            'dc-yield-gross': '#4caf50',
+            'dc-yield-net': '#2e7d32',
+            'dc-cost-comm': '#f57c00',
+            'dc-cost-tobin': '#d32f2f',
+            'dc-cost-tax': '#7c3aed',
+          },
+          fontFamily: {
+            'sans': ['Inter', 'system-ui', 'sans-serif'],
+          },
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #0a0e17; color: #f3f4f6; font-family: 'Inter', system-ui, sans-serif; }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #0a0e17; }
+    ::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #374151; }
+  </style>
+</head>
+<body>
+  <app-root></app-root>
+</body>
+</html>

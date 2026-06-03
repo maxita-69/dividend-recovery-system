@@ -1,0 +1,88 @@
+<div class="page-single-stock">
+  @if (isLoading()) {
+    <div class="loading-wrap">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Caricamento...</p>
+    </div>
+  } @else {
+    @if (stock(); as s) {
+      <h1 class="page-title">{{ s.ticker }} <span class="subtitle">{{ s.name }}</span></h1>
+
+      <div class="info-row">
+        <mat-card class="info-card">
+          <mat-card-content>
+            <div class="info-item"><strong>Mercato:</strong> {{ s.market || '—' }}</div>
+            <div class="info-item"><strong>Settore:</strong> {{ s.sector || '—' }}</div>
+            <div class="info-item"><strong>Valuta:</strong> {{ s.currency }}</div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+
+      <div class="tables-row">
+        <mat-card class="data-card">
+          <mat-card-header><mat-card-title>Dividendi</mat-card-title></mat-card-header>
+          <mat-card-content>
+            <table mat-table [dataSource]="dividends()" class="data-table">
+              <ng-container matColumnDef="ex_date">
+                <th mat-header-cell *matHeaderCellDef>Ex-Date</th>
+                <td mat-cell *matCellDef="let row">{{ row.ex_date }}</td>
+              </ng-container>
+              <ng-container matColumnDef="amount">
+                <th mat-header-cell *matHeaderCellDef>Importo</th>
+                <td mat-cell *matCellDef="let row">{{ row.amount | currency:'EUR':'symbol':'1.3-3':'it' }}</td>
+              </ng-container>
+              <ng-container matColumnDef="payment_date">
+                <th mat-header-cell *matHeaderCellDef>Payment</th>
+                <td mat-cell *matCellDef="let row">{{ row.payment_date || '—' }}</td>
+              </ng-container>
+              <ng-container matColumnDef="status">
+                <th mat-header-cell *matHeaderCellDef>Stato</th>
+                <td mat-cell *matCellDef="let row">
+                  <span class="status-badge" [class.confirmed]="row.status === 'CONFIRMED'">{{ row.status }}</span>
+                </td>
+              </ng-container>
+              <tr mat-header-row *matHeaderRowDef="divColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: divColumns;"></tr>
+            </table>
+          </mat-card-content>
+        </mat-card>
+
+        <mat-card class="data-card">
+          <mat-card-header><mat-card-title>Prezzi Recenti</mat-card-title></mat-card-header>
+          <mat-card-content>
+            <table mat-table [dataSource]="prices()" class="data-table">
+              <ng-container matColumnDef="date">
+                <th mat-header-cell *matHeaderCellDef>Data</th>
+                <td mat-cell *matCellDef="let row">{{ row.date }}</td>
+              </ng-container>
+              <ng-container matColumnDef="open">
+                <th mat-header-cell *matHeaderCellDef>Open</th>
+                <td mat-cell *matCellDef="let row">{{ row.open | number:'1.2-2':'it' }}</td>
+              </ng-container>
+              <ng-container matColumnDef="high">
+                <th mat-header-cell *matHeaderCellDef>High</th>
+                <td mat-cell *matCellDef="let row">{{ row.high | number:'1.2-2':'it' }}</td>
+              </ng-container>
+              <ng-container matColumnDef="low">
+                <th mat-header-cell *matHeaderCellDef>Low</th>
+                <td mat-cell *matCellDef="let row">{{ row.low | number:'1.2-2':'it' }}</td>
+              </ng-container>
+              <ng-container matColumnDef="close">
+                <th mat-header-cell *matHeaderCellDef>Close</th>
+                <td mat-cell *matCellDef="let row">{{ row.close | number:'1.2-2':'it' }}</td>
+              </ng-container>
+              <ng-container matColumnDef="volume">
+                <th mat-header-cell *matHeaderCellDef>Vol</th>
+                <td mat-cell *matCellDef="let row">{{ row.volume | number:'1.0-0':'it' }}</td>
+              </ng-container>
+              <tr mat-header-row *matHeaderRowDef="priceColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: priceColumns;"></tr>
+            </table>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    } @else {
+      <p class="empty">Titolo non trovato.</p>
+    }
+  }
+</div>

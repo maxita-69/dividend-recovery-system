@@ -1,0 +1,31 @@
+<div class="page-master">
+  <h1 class="page-title">Master Dashboard</h1>
+
+  <div class="kpi-grid">
+    @for (kpi of getKpis(); track kpi.label) {
+      <mat-card class="kpi-card">
+        <mat-card-content>
+          <div class="kpi-content">
+            <mat-icon class="kpi-icon {{ kpi.colorClass }}">{{ kpi.icon }}</mat-icon>
+            <div class="kpi-info">
+              <div class="kpi-value">{{ kpi.value | number:'1.0-2':'it' }}</div>
+              <div class="kpi-label">{{ kpi.label }}</div>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    }
+  </div>
+
+  <mat-card class="info-card">
+    <mat-card-content>
+      <p>🚧 Questa dashboard mostrerà:</p>
+      <ul>
+        <li>Grafico distribuzione dividendi per mese</li>
+        <li>Heatmap recovery per titolo</li>
+        <li>Top performer / underperformer</li>
+        <li>Alert prossimi stacchi</li>
+      </ul>
+    </mat-card-content>
+  </mat-card>
+</div>
