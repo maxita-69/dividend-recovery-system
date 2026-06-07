@@ -1,0 +1,90 @@
+.page-strategy {
+  .page-title {
+    font-size: 24px;
+    font-weight: 500;
+    margin-bottom: 20px;
+    color: #1a1a2e;
+  }
+
+  .control-card {
+    border-radius: 12px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+
+    .stock-select {
+      width: 320px;
+    }
+  }
+
+  .loading-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 40px;
+  }
+
+  .data-card {
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+
+    mat-card-title {
+      font-size: 16px;
+      font-weight: 500;
+      color: #1a1a2e;
+    }
+  }
+
+  .data-table {
+    width: 100%;
+    margin-top: 8px;
+
+    th {
+      font-weight: 600;
+      color: #555;
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+
+    td {
+      font-size: 13px;
+      color: #444;
+    }
+
+    .positive {
+      color: #2e7d32;
+      font-weight: 500;
+    }
+
+    .negative {
+      color: #c62828;
+      font-weight: 500;
+    }
+  }
+
+  .winner-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    background: #e0e0e0;
+    color: #666;
+
+    &.flip {
+      background: #fff3e0;
+      color: #ef6c00;
+    }
+
+    &.long {
+      background: #e3f2fd;
+      color: #1565c0;
+    }
+  }
+
+  .empty {
+    color: #888;
+    padding: 24px;
+    text-align: center;
+  }
+}

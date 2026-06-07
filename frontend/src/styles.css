@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-dc-bg text-dc-text antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+  }
+}
+
+@layer components {
+  .dc-card {
+    @apply bg-dc-card border border-dc-border rounded-xl p-6 shadow-lg;
+  }
+  .dc-card-hover {
+    @apply bg-dc-card border border-dc-border rounded-xl p-6 shadow-lg transition-all duration-300 hover:border-dc-accent/30 hover:shadow-dc-accent/5;
+  }
+  .dc-btn-primary {
+    @apply bg-dc-accent hover:bg-dc-secondary text-white font-medium px-4 py-2.5 rounded-lg transition-all duration-200 flex items-center gap-2;
+  }
+  .dc-btn-secondary {
+    @apply bg-dc-card border border-dc-border hover:border-dc-text-secondary text-dc-text font-medium px-4 py-2.5 rounded-lg transition-all duration-200 flex items-center gap-2;
+  }
+  .dc-btn-danger {
+    @apply bg-dc-danger hover:bg-red-700 text-white font-medium px-4 py-2.5 rounded-lg transition-all duration-200 flex items-center gap-2;
+  }
+  .dc-input {
+    @apply bg-dc-bg border border-dc-border rounded-lg px-4 py-2.5 text-dc-text placeholder-dc-text-secondary focus:outline-none focus:border-dc-accent focus:ring-1 focus:ring-dc-accent/30 transition-all w-full;
+  }
+  .dc-select {
+    @apply bg-dc-bg border border-dc-border rounded-lg px-4 py-2.5 text-dc-text focus:outline-none focus:border-dc-accent focus:ring-1 focus:ring-dc-accent/30 transition-all w-full appearance-none cursor-pointer;
+  }
+  .dc-table {
+    @apply w-full text-left border-collapse;
+  }
+  .dc-table thead th {
+    @apply text-dc-text-secondary text-xs font-semibold uppercase tracking-wider py-3 px-4 border-b border-dc-border;
+  }
+  .dc-table tbody tr {
+    @apply border-b border-dc-border/50 transition-colors hover:bg-dc-border/30;
+  }
+  .dc-table tbody td {
+    @apply py-3 px-4 text-sm;
+  }
+  .dc-badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  .dc-badge-strong-buy {
+    @apply bg-green-500/20 text-green-400 border border-green-500/30;
+  }
+  .dc-badge-buy {
+    @apply bg-green-400/15 text-green-300 border border-green-400/25;
+  }
+  .dc-badge-hold {
+    @apply bg-orange-500/15 text-orange-400 border border-orange-500/25;
+  }
+  .dc-badge-sell {
+    @apply bg-red-500/20 text-red-400 border border-red-500/30;
+  }
+  .dc-badge-avoid {
+    @apply bg-red-900/30 text-red-500 border border-red-900/40;
+  }
+  .dc-progress-bar {
+    @apply h-2 bg-dc-border rounded-full overflow-hidden;
+  }
+  .dc-progress-bar-fill {
+    @apply h-full rounded-full transition-all duration-500;
+  }
+  .dc-nav-link {
+    @apply flex items-center gap-3 px-4 py-3 text-dc-text-secondary rounded-lg transition-all duration-200 hover:bg-dc-border/50 hover:text-dc-text;
+  }
+  .dc-nav-link.active {
+    @apply bg-dc-accent/15 text-dc-accent border-r-2 border-dc-accent;
+  }
+  .dc-section-title {
+    @apply text-lg font-semibold text-dc-text flex items-center gap-2;
+  }
+  .dc-kpi-value {
+    @apply text-2xl font-bold tracking-tight;
+  }
+  .dc-kpi-label {
+    @apply text-xs text-dc-text-secondary uppercase tracking-wider font-medium;
+  }
+  .dc-kpi-change-positive {
+    @apply text-dc-accent text-sm font-medium flex items-center gap-1;
+  }
+  .dc-kpi-change-negative {
+    @apply text-dc-danger text-sm font-medium flex items-center gap-1;
+  }
+}
+
+@layer utilities {
+  .text-gradient-green {
+    @apply bg-gradient-to-r from-dc-accent to-dc-secondary bg-clip-text text-transparent;
+  }
+  .animate-pulse-slow {
+    animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+}

@@ -53,3 +53,11 @@ data/*.parquet
 # Temp files
 *.tmp
 *.bak
+
+# Angular / Node
+frontend/node_modules/
+frontend/.angular/
+
+# Runtime PID files
+.pid_streamlit*
+.service_pids.json

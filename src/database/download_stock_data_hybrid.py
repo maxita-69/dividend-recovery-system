@@ -217,23 +217,23 @@ def download_tickers(tickers, session=None, progress_callback=None, start_date='
                     stats['skipped'] += 1
                     continue
 
-                print(f"\n🔍 [{idx}/{len(tickers)}] Checking existing data for {ticker}...")
-                print(f"   📅 Last price in DB: {last_date}")
+                print(f"\n[CHECK] [{idx}/{len(tickers)}] Checking existing data for {ticker}...")
+                print(f"   [DATE] Last price in DB: {last_date}")
             else:
                 download_start = start_date
-                print(f"\n📥 [{idx}/{len(tickers)}] New ticker: {ticker}")
+                print(f"\n[NEW] [{idx}/{len(tickers)}] New ticker: {ticker}")
 
             # Download
             if progress_callback:
                 progress_callback(ticker, idx, len(tickers), 'downloading', f'Downloading from {provider_name}...')
 
-            print(f"\n📊 Downloading {ticker} from {provider_name}...")
+            print(f"\n[DOWNLOAD] Downloading {ticker} from {provider_name}...")
             print(f"   Period: {download_start} to {datetime.now().strftime('%Y-%m-%d')}")
 
             data, error = download_ticker_data(ticker, provider, download_start)
 
             if error:
-                print(f"   ❌ Error: {error}")
+                print(f"   [ERROR] Error: {error}")
                 if progress_callback:
                     progress_callback(ticker, idx, len(tickers), 'error', f'Error: {error}')
                 stats['errors'] += 1
@@ -243,7 +243,7 @@ def download_tickers(tickers, session=None, progress_callback=None, start_date='
                 continue
 
             if not data or not data['prices']:
-                print(f"   ❌ No data found")
+                print(f"   [ERROR] No data found")
                 if progress_callback:
                     progress_callback(ticker, idx, len(tickers), 'error', 'No data found')
                 stats['errors'] += 1
@@ -252,7 +252,7 @@ def download_tickers(tickers, session=None, progress_callback=None, start_date='
             # Save to DB
             prices_saved, divs_saved = save_to_database(session, ticker, data)
 
-            print(f"   ✅ Saved {prices_saved} prices, {divs_saved} dividends")
+            print(f"   [OK] Saved {prices_saved} prices, {divs_saved} dividends")
             if progress_callback:
                 progress_callback(ticker, idx, len(tickers), 'success', f'Saved {prices_saved} prices, {divs_saved} dividends')
 
@@ -262,7 +262,7 @@ def download_tickers(tickers, session=None, progress_callback=None, start_date='
             time.sleep(random.uniform(1.0, 3.0))
 
         except Exception as e:
-            print(f"   ❌ Failed to download {ticker}: {str(e)}")
+            print(f"   [ERROR] Failed to download {ticker}: {str(e)}")
             if progress_callback:
                 progress_callback(ticker, idx, len(tickers), 'error', str(e))
             stats['errors'] += 1
@@ -285,7 +285,7 @@ if __name__ == "__main__":
         'STM.MI'     # Italia → Yahoo
     ]
 
-    print("🚀 Starting Hybrid Download Test...")
+    print("[START] Starting Hybrid Download Test...")
     print(f"Tickers: {test_tickers}")
     print("=" * 50)
 
@@ -293,7 +293,7 @@ if __name__ == "__main__":
     stats = download_tickers(test_tickers, session=session)
 
     print("\n" + "=" * 50)
-    print("📊 Download Statistics:")
-    print(f"   ✅ Success: {stats['success']}")
-    print(f"   ❌ Errors: {stats['errors']}")
-    print(f"   ⏭️  Skipped: {stats['skipped']}")
+    print("[STATS] Download Statistics:")
+    print(f"   [OK] Success: {stats['success']}")
+    print(f"   [ERROR] Errors: {stats['errors']}")
+    print(f"   [SKIP] Skipped: {stats['skipped']}")
