@@ -1,0 +1,44 @@
+================================================================================
+STATO ATTUALE DEL SISTEMA — 14 Giugno 2026
+================================================================================
+
+COSA ABBIAMO FATTO OGGI:
+- Trovato il vero database: PostgreSQL 15 in Docker (porta 5432)
+- Corretto file .env con password reale
+- Ruotata password superuser "trading"
+- Riavviato FastAPI con password corretta
+- Creato servizio systemd "trading-brain" per persistenza
+- Verificato: FastAPI risponde su http://localhost:8000/
+
+DATABASE ATTIVO:
+- Host: 127.0.0.1, Porta: 5432
+- Nome: trading_db, User: trading
+- Password: [vedi Bitwarden]
+- Container: postgres:15-alpine
+
+FASTAPI:
+- URL: http://localhost:8000/
+- Servizio: trading-brain (systemd)
+
+PROMPT PER NUOVA CHAT:
+Sono Massimiliano, sviluppo dividend capture su VPS Ubuntu.
+Database: PostgreSQL 15 Docker porta 5432, db "trading_db".
+FastAPI: porta 8000, systemd "trading-brain".
+n8n: https://vmi3343226.tail26239d.ts.net
+Repo: ~/dividend-recovery-system
+Provider: yfinance (gratis) → IBKR ($5.60/mese)
+Ultimo task: FastAPI resuscitato + systemd persistente
+Prossimo: Iniziare screener dividendi
+Problemi: auth PostgreSQL, struttura repo, ruotare EODHD key
+
+Briefing: curl http://localhost:8000/llm-handoff
+
+COMANDI RAPIDI:
+ssh massimiliano@167.86.84.249
+sudo systemctl status trading-brain tailscale-funnel
+docker ps
+curl http://localhost:8000/
+curl http://localhost:8000/llm-handoff
+docker exec -it postgres psql -U trading -d trading_db
+cd ~/dividend-recovery-system && source venv/bin/activate
+================================================================================
