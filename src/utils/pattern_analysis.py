@@ -20,7 +20,7 @@ from datetime import datetime, timedelta
 from dataclasses import dataclass
 
 from config import get_config
-from .database import get_price_dataframe
+from database.database import get_price_dataframe
 from .recovery_analysis import find_recovery
 from .validation import validate_price_data, ValidationError
 from .logging_config import get_logger
