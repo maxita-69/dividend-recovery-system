@@ -77,11 +77,12 @@ git clone <repo-url>
 cd dividend-recovery-system
 git checkout main-merged
 
-# === Backend ===
-cd backend
+# === Backend (FastAPI) ===
+source venv/bin/activate
 pip install -r requirements.txt
-python run.py
-# Backend runs on http://localhost:8000
+uvicorn api.main:app --reload --host 0.0.0.0 --port 8001
+# API runs on http://localhost:8001
+# Swagger UI: http://localhost:8001/docs
 
 # === Frontend (new terminal) ===
 cd frontend
