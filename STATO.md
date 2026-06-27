@@ -1,4 +1,4 @@
-# 📍 STATO PROGETTO — 2026-06-27 16:52
+# 📍 STATO PROGETTO — 2026-06-27 17:32
 
 > Generato automaticamente da `genera_stato.sh`.
 > Le sezioni sotto sono LETTE DAL SISTEMA REALE: non modificarle a mano.
@@ -6,17 +6,16 @@
 
 ## 🎯 Intento corrente (da INTENTO.md)
 
-**Fase:** C — Sviluppo trading
-**Ultima cosa fatta:** Fase B chiusa; fetta API (/health + /stocks) verificata e pushata; repo ripulito (rimossa dashboard/ morta + 3 downloader duplicati)
-**Prossimo passo:** decidere se l'Angular in frontend/ è vivo → se sì espandere API (recovery), se no passare allo screener dividendi yfinance
-**Domande aperte:** frontend/ Angular vivo o morto? ; FMP key forse leakata ; import core stile vecchio (database.database) = debito noto
-**Assistente ultima sessione:** Kimi Code 2.7 (esecuzione) + Claude (chat, revisione)
+**Ultima cosa fatta:** servizi API+Streamlit resi persistenti (systemd user), bind corretto a 127.0.0.1, esposizione pubblica esclusa (curl da casa = timeout). Angular in frontend/ confermato VIVO.
+**Prossimo passo:** lavorare sull'Angular (frontend/) — verificare proxy.conf.json punti a :8001, poi npm start e accesso via tunnel SSH con -L 4200:localhost:4200
+**Domande aperte:** abilitare loginctl enable-linger per avvio al boot? ; API senza auth (ok solo finché localhost) ; accesso remoto = SEMPRE tunnel SSH, MAI esposizione pubblica
 
 ## 🌿 Git
 ```
 Branch attivo: main
 
 Ultimi commit:
+0320f50 stato: INTENTO.md ripulito (5 righe)
 7baad4b stato: pulizia repo completata, API verde
 413d476 chore: rimossa dashboard Streamlit morta e downloader duplicati
 fbd1509 stato: fetta API verificata e pushata
@@ -24,7 +23,6 @@ fbd1509 stato: fetta API verificata e pushata
 8024274 feat: scaffolding FastAPI fetta verticale - health + stocks su DB SQLite reale porta 8001
 e9bf647 stato: piano API sospeso, prima Fase B
 ce9113b Aggiunto sistema di stato/handoff automatico
-06836d3 docs: aggiunto CONTINUITA.md per sessioni future
 
 Modifiche NON committate:
  M INTENTO.md
@@ -62,6 +60,7 @@ n8n        Up 4 days   0.0.0.0:5678->5678/tcp, [::]:5678->5678/tcp
 ./data
 ./dividendi
 ./frontend
+./frontend/.angular
 ./frontend/src
 ./logs
 ./providers
