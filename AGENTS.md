@@ -10,7 +10,7 @@ The **Dividend Recovery Trading System** is a quantitative analysis platform for
 
 The project has **three concurrent frontend/runtime layers**:
 1. **Python backend + Streamlit dashboards** — primary analysis engine and UI
-2. **Angular frontend** — unified trading dashboard (merged from two branches: dividend-capture-trading and dividend-recovery-angular)
+2. **Angular frontend** — unified trading dashboard (merged from three branches: dividend-capture-trading/B1, dividend-recovery-angular/B2, with ML-agent backend assets from kimi-agent-progetto-trading-ml/B3)
 3. **SQLite database** — local data store for prices, dividends, and audit logs
 
 Key business concepts:
@@ -35,6 +35,10 @@ Key business concepts:
 - **pydantic** — data validation
 - **scikit-learn**, **statsmodels** — ML and statistical analysis
 - **ib-insync** — Interactive Brokers API integration
+- **schedule** — task scheduling for automated data updates
+- **python-json-logger**, **python-dateutil**, **typing-extensions** — logging and date/type utilities
+- **tabulate** — table formatting for calendar displays
+- **eodhd** — EOD Historical Data API client
 - **python-dotenv**, **pyyaml** — configuration management
 
 ### Frontend (Angular)
@@ -60,7 +64,7 @@ Key business concepts:
 ## Project Structure
 
 ```
-dividend-capture-final/
+dividend-recovery-system/
 ├── app/                              # Streamlit multi-page app (primary UI)
 │   ├── Home.py                       # Main dashboard entry point
 │   ├── auth.py                       # streamlit-authenticator login/logout
@@ -90,8 +94,13 @@ dividend-capture-final/
 │   │   │   ├── portfolio/
 │   │   │   ├── dividend-calendar/
 │   │   │   ├── stock-detail/
-│   │   │   └── shared/               # Reusable UI: kpi-card, yield-bar, etc.
+│   │   │   └── shared/               # Reusable UI
+│   │   │       ├── cost-breakdown/
+│   │   │       ├── kpi-card/
+│   │   │       ├── recommendation-badge/
+│   │   │       └── yield-bar/
 │   │   ├── pages/                    # B2 components (recovery-analysis)
+│   │   │   ├── home/                 # B2 landing page (redirected)
 │   │   │   ├── recovery-analysis/
 │   │   │   ├── strategy-comparison/
 │   │   │   ├── pattern-analysis/
@@ -118,8 +127,10 @@ dividend-capture-final/
 │   │   ├── download_stock_data.py    # Yahoo Finance downloader
 │   │   ├── download_stock_data_fmp.py # FMP downloader
 │   │   ├── download_stock_data_hybrid.py # Hybrid provider logic
+│   │   ├── download_stock_data_v2.py # Updated downloader (v2)
 │   │   ├── download_data_ib.py       # Interactive Brokers downloader
-│   │   └── test_*.py                 # Connection test scripts
+│   │   ├── diagnose_ib_connection.py # IB connection diagnostics
+│   │   └── test_*.py                 # Connection/test scripts (IB, USA, gateway)
 │   ├── utils/
 │   │   ├── recovery_analysis.py      # Core recovery detection algorithm
 │   │   ├── pattern_analysis.py       # Pre/post dividend correlation
@@ -137,7 +148,10 @@ dividend-capture-final/
 │
 ├── dividendi/                        # IBKR dividend-specific scripts
 │   ├── dividend_calendar.py
+│   ├── debug_all.py
+│   ├── debug_dividend.py
 │   ├── get_dividends_ibkr.py
+│   ├── get_dividends_ibkr_v2.py
 │   ├── ibkr_dividend_downloader.py
 │   └── ibkr_dividend_parser.py
 │
@@ -153,6 +167,8 @@ dividend-capture-final/
 ├── data/                             # SQLite databases (commit to git for Streamlit Cloud)
 │   ├── dividend_recovery.db
 │   └── dividend_recovery_ib.db
+│
+├── logs/                             # Runtime logs (gitignored)
 │
 ├── config.py                         # Centralized singleton configuration
 ├── requirements.txt                  # Python dependencies
@@ -259,7 +275,7 @@ Test structure:
 - `test_validation.py` — price data, dividend data, and input validation
 - `test_pattern_analysis.py` — feature extraction, correlation, similarity
 
-Current coverage: ~35 tests covering recovery detection, edge cases, statistics, validation, and error handling.
+Current coverage: ~50 tests covering recovery detection, edge cases, statistics, validation, and error handling.
 
 ### Angular Tests
 - Standard Angular CLI Karma + Jasmine setup.
@@ -274,10 +290,10 @@ Current coverage: ~35 tests covering recovery detection, edge cases, statistics,
 
 | Table | Key Columns | Purpose |
 |-------|-------------|---------|
-| `stocks` | `ticker` (unique), `name`, `market`, `sector`, `currency` | Instrument master data |
-| `dividends` | `stock_id` (FK), `ex_date`, `amount`, `payment_date`, `status`, `confidence`, `prediction_source` | Dividend events (historical + predicted) |
+| `stocks` | `ticker` (unique), `name`, `market`, `sector`, `currency`, `created_at`, `updated_at` | Instrument master data |
+| `dividends` | `stock_id` (FK), `ex_date`, `amount`, `payment_date`, `record_date`, `currency`, `dividend_type`, `status`, `confidence`, `prediction_source`, `created_at` | Dividend events (historical + predicted) |
 | `price_data` | `stock_id` (FK), `date`, `open`, `high`, `low`, `close`, `volume`, `adjusted_close` | OHLCV time series |
-| `data_collection_logs` | `timestamp`, `source`, `operation`, `stock_ticker`, `status` | Audit trail for data operations |
+| `data_collection_logs` | `timestamp`, `source`, `operation`, `stock_ticker`, `status`, `records_processed`, `message` | Audit trail for data operations |
 
 ### Configuration (`config.py`)
 
@@ -366,6 +382,22 @@ logger.info("message", extra={"ticker": "ENEL.MI"})
 
 ---
 
+## Known Issues / Reality Check
+
+A few things to keep in mind when navigating this codebase:
+
+- **`frontend/README.md` references a `backend/` folder** that does not exist in the repository root. The Python backend logic is distributed across `src/`, `app/`, `dashboard/`, `providers/`, `dividendi/`, `scripts/`, and the root-level Python scripts. Do not create a `backend/` directory unless you are intentionally restructuring the project.
+
+- **No committed backend API server at `localhost:8000`.** The Angular dev proxy forwards `/api` to `localhost:8000`, but the repository does not include that server. For frontend-only work, keep `useMocks = true` in `frontend/src/app/services/api.service.ts`.
+
+- **`src/data_providers/` exists but is not the active provider package.** It currently contains only a `.env` file. The pluggable provider implementation lives in `providers/` (`base_provider.py`, `fmp_provider.py`, `yahoo_provider.py`, `provider_manager.py`).
+
+- **Several root-level scripts are development/verification tools**, not part of the main runtime: `quick_test_fmp.py`, `test_fmp_complete.py`, `test_yahoo_download.py`, `standalone_fmp_test.py`, `analizza_db.py`, `create_sample_data.py`, etc. Check their contents before assuming they are production pipelines.
+
+- **Database files in `data/` are tracked by Git** (`.gitignore` does not exclude `*.db`) so that Streamlit Cloud can access them. Avoid committing large or sensitive data exports.
+
+---
+
 ## Important Files for Agents
 
 | File | Why it matters |
@@ -381,4 +413,4 @@ logger.info("message", extra={"ticker": "ENEL.MI"})
 
 ---
 
-*Last updated: 2026-06-03*
+*Last updated: 2026-06-14*
