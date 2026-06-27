@@ -22,7 +22,7 @@ done
 
 # 2. Fallback: libera le porte per PID specifico
 echo "Verifica porte residue..."
-for port in 8501 8502 4200; do
+for port in 8501 4200; do
     pid=$(netstat -ano | grep ":$port" | grep LISTENING | awk '{print $5}')
     if [ -n "$pid" ]; then
         echo "Porta $port occupata da PID $pid. Arresto..."

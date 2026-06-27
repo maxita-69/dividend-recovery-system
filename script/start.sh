@@ -23,7 +23,7 @@ fi
 
 # 2. Libera porte
 echo "[2/4] Verifica porte..."
-for port in 8501 8502 4200; do
+for port in 8501 4200; do
     pid=$(netstat -ano | grep ":$port" | grep LISTENING | awk '{print $5}')
     if [ -n "$pid" ]; then
         echo "        Porta $port occupata (PID $pid). Libero..."
@@ -38,11 +38,6 @@ echo "[3/4] Avvio servizi..."
 "$STREAMLIT" run app/Home.py --server.port 8501 --browser.gatherUsageStats false > streamlit1.log 2>&1 &
 echo $! > "$PROJECT_DIR/.pid_streamlit1"
 echo "        Streamlit Dashboard -> http://localhost:8501"
-sleep 4
-
-"$STREAMLIT" run dashboard/app.py --server.port 8502 --browser.gatherUsageStats false > streamlit2.log 2>&1 &
-echo $! > "$PROJECT_DIR/.pid_streamlit2"
-echo "        Dividend Calendar   -> http://localhost:8502"
 sleep 4
 
 cd frontend
@@ -65,7 +60,7 @@ echo "[4/4] Verifica avvio..."
 sleep 3
 
 OK=true
-for port in 8501 8502 4200; do
+for port in 8501 4200; do
     if netstat -ano | grep -q ":$port.*LISTENING"; then
         echo "        Porta $port -> OK"
     else
@@ -79,12 +74,11 @@ if [ "$OK" = true ]; then
     echo "============================================"
     echo "TUTTI I SERVIZI ATTIVI"
     echo "- http://localhost:8501  (Dashboard)"
-    echo "- http://localhost:8502  (Calendar)"
     echo "- http://localhost:4200  (Angular)"
     echo "============================================"
 else
     echo "ATTENZIONE: alcuni servizi non sono attivi."
-    echo "Controlla i log: streamlit1.log, streamlit2.log, angular.log"
+    echo "Controlla i log: streamlit1.log, angular.log"
 fi
 
 echo ""

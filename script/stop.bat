@@ -21,7 +21,7 @@ if exist .pid_* (
 
 :: Fallback: libera le porte per PID specifico
 echo Verifica porte residue...
-for %%p in (8501 8502 4200) do (
+for %%p in (8501 4200) do (
     for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":%%p" ^| findstr "LISTENING"') do (
         echo Porta %%p occupata da PID %%a. Arresto...
         taskkill /F /PID %%a >nul 2>&1

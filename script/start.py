@@ -11,7 +11,6 @@ os.chdir(PROJECT_DIR)
 PID_FILE = PROJECT_DIR / ".service_pids.json"
 PORTS = {
     "streamlit1": 8501,
-    "streamlit2": 8502,
     "angular": 4200,
 }
 
@@ -78,18 +77,6 @@ def main():
     pids["streamlit1"] = p1.pid
     time.sleep(3)
 
-    print("        Dividend Calendar   -> http://localhost:8502")
-    with open("streamlit2.log", "w") as slog:
-        p2 = subprocess.Popen(
-            [
-                streamlit_exe, "run", "dashboard/app.py",
-                "--server.port", "8502", "--browser.gatherUsageStats", "false"
-            ],
-            stdout=slog, stderr=subprocess.STDOUT
-        )
-    pids["streamlit2"] = p2.pid
-    time.sleep(3)
-
     print("        Angular Frontend    -> http://localhost:4200")
     # Apre Angular in una nuova console dedicata, nella directory frontend
     frontend_dir = str(PROJECT_DIR / "frontend")
@@ -130,7 +117,6 @@ def main():
         print("=" * 44)
         print("TUTTI I SERVIZI ATTIVI")
         print("- http://localhost:8501  Dashboard")
-        print("- http://localhost:8502  Calendar")
         print("- http://localhost:4200  Angular")
         print("=" * 44)
     else:

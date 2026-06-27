@@ -74,7 +74,7 @@ FastAPI: solo localhost (per ora), niente esposizione esterna
 1	Chiave EODHD leakata in cronologia chat	Account/provider compromesso	Ruotare su eodhd.com ADESSO
 2	Auth PostgreSQL esposta	Rischio accesso non autorizzato	Aggiungere X-API-Key, IP allowlist
 3	SAL 5 Backtesting non completato	Strategia non validata empiricamente	Implementare engine in src/backtesting/engine.py
-4	Titoli USA non scaricati	Sample insufficiente (276 eventi vs target 500)	Eseguire download_stock_data_v2.py
+4	Titoli USA non scaricati	Sample insufficiente (276 eventi vs target 500)	Eseguire src/database/download_stock_data_hybrid.py
 5	POST /ingest non esiste	Protocollo handoff è solo teorico	Implementare (vedi § 6)
 6	Documentazione frammentata in 14 file	Confusione, tempo perso a cercare	Questo file unico
 3.3 Cronologia SAL (Stati Avanzamento Lavori)
@@ -168,7 +168,7 @@ cd ~/dividend-recovery-system
 
 source venv/bin/activate
 
-python download_stock_data_v2.py  # ~3h per 20 titoli USA
+python src/database/download_stock_data_hybrid.py  # ~3h per 20 titoli USA
 
 python dividend_calendar.py
 
@@ -360,7 +360,7 @@ Copy
 
 ├── dividendi/                  # Script IBKR dedicati
 
-├── dashboard/                  # Dashboard calendario (separata)
+├── api/                        # FastAPI backend
 
 ├── config.py                   # ⭐ Configurazione centralizzata
 
@@ -415,7 +415,7 @@ python: command not found	Python non in PATH	Reinstalla con "Add to PATH"
 ModuleNotFoundError: yfinance	Dipendenze non installate	pip install -r requirements.txt
 curl_cffi ProxyError	Firewall aziendale	VPN o rete casa
 Yahoo Finance 403	Rate limiting	Aspetta 5-10 min o VPN
-Database locked	Altri script aperti	Chiudi dashboard/Streamlit
+Database locked	Altri script aperti	Chiudi Streamlit
 FastAPI non risponde	Servizio giù	sudo systemctl restart trading-brain
 SSH port 22 timeout	IP pubblico chiuso	Usa Tailscale: ssh massimiliano@vmi3343226
 psql: connection refused	Container down	docker ps, restart container

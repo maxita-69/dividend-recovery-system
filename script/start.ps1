@@ -17,7 +17,7 @@ if (-not (Test-Path "venv")) {
 
 # 2. Libera porte
 Write-Host "[2/4] Verifica porte..."
-foreach ($port in @(8501, 8502, 4200)) {
+foreach ($port in @(8501, 4200)) {
     $conn = netstat -ano | Select-String ":$port" | Select-String "LISTENING"
     if ($conn) {
         $pid = ($conn -split '\s+')[-1]
@@ -33,11 +33,6 @@ Write-Host "[3/4] Avvio servizi..."
 Write-Host "        Streamlit Dashboard -> http://localhost:8501"
 $st1 = Start-Process -FilePath "venv\Scripts\streamlit.exe" -ArgumentList "run","app/Home.py","--server.port","8501","--browser.gatherUsageStats","false" -WindowStyle Hidden -PassThru
 $st1.Id | Out-File .pid_streamlit1
-Start-Sleep -Seconds 3
-
-Write-Host "        Dividend Calendar   -> http://localhost:8502"
-$st2 = Start-Process -FilePath "venv\Scripts\streamlit.exe" -ArgumentList "run","dashboard/app.py","--server.port","8502","--browser.gatherUsageStats","false" -WindowStyle Hidden -PassThru
-$st2.Id | Out-File .pid_streamlit2
 Start-Sleep -Seconds 3
 
 Write-Host "        Angular Frontend    -> http://localhost:4200"
@@ -62,7 +57,7 @@ if (-not $angularReady) {
 # 4. Verifica
 Write-Host "[4/4] Verifica avvio..."
 $allOk = $true
-foreach ($port in @(8501, 8502, 4200)) {
+foreach ($port in @(8501, 4200)) {
     $conn = netstat -ano | Select-String ":$port" | Select-String "LISTENING"
     if ($conn) {
         Write-Host "        Porta $port -> OK"
@@ -77,12 +72,11 @@ if ($allOk) {
     Write-Host "============================================"
     Write-Host "TUTTI I SERVIZI ATTIVI"
     Write-Host "- http://localhost:8501  Dashboard"
-    Write-Host "- http://localhost:8502  Calendar"
     Write-Host "- http://localhost:4200  Angular"
     Write-Host "============================================"
 } else {
     Write-Host "ATTENZIONE: alcuni servizi non sono attivi."
-    Write-Host "Controlla i log: streamlit1.log, streamlit2.log, angular.log"
+    Write-Host "Controlla i log: streamlit1.log, angular.log"
 }
 
 Write-Host ""

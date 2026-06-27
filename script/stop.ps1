@@ -15,7 +15,7 @@ Get-ChildItem -Path ".pid_*" -ErrorAction SilentlyContinue | ForEach-Object {
 
 # Fallback: libera le porte per PID specifico
 Write-Host "Verifica porte residue..."
-foreach ($port in @(8501, 8502, 4200)) {
+foreach ($port in @(8501, 4200)) {
     $conn = netstat -ano | Select-String ":$port" | Select-String "LISTENING"
     if ($conn) {
         $pidVal = ($conn -split '\s+')[-1]

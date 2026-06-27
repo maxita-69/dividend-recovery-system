@@ -77,10 +77,10 @@ dividend-recovery-system/
 │       ├── 6_Download_Data.py        # Data download UI
 │       └── 7_Database_Dashboard.py   # DB management UI
 │
-├── dashboard/                        # Secondary Streamlit app (dividend calendar)
-│   ├── app.py
-│   └── pages/
-│       └── 1_📅_Dividend_Calendar.py
+├── api/                              # FastAPI backend
+│   ├── main.py
+│   ├── routers/
+│   └── services/
 │
 ├── frontend/                         # Angular unified frontend
 │   ├── src/app/
@@ -124,10 +124,7 @@ dividend-recovery-system/
 │   ├── database/
 │   │   ├── models.py                 # SQLAlchemy ORM models
 │   │   ├── database.py               # Session management, helpers
-│   │   ├── download_stock_data.py    # Yahoo Finance downloader
-│   │   ├── download_stock_data_fmp.py # FMP downloader
-│   │   ├── download_stock_data_hybrid.py # Hybrid provider logic
-│   │   ├── download_stock_data_v2.py # Updated downloader (v2)
+│   │   ├── download_stock_data_hybrid.py # Active hybrid downloader (Yahoo + FMP)
 │   │   ├── download_data_ib.py       # Interactive Brokers downloader
 │   │   ├── diagnose_ib_connection.py # IB connection diagnostics
 │   │   └── test_*.py                 # Connection/test scripts (IB, USA, gateway)
@@ -199,8 +196,8 @@ python scripts/setup_db.py
 streamlit run app/Home.py
 # Runs on http://localhost:8501
 
-# Run secondary Streamlit app (dividend calendar)
-streamlit run dashboard/app.py
+# Run FastAPI backend (porta 8001)
+uvicorn api.main:app --reload --host 0.0.0.0 --port 8001
 
 # Run tests
 pytest tests/ -v
@@ -386,9 +383,9 @@ logger.info("message", extra={"ticker": "ENEL.MI"})
 
 A few things to keep in mind when navigating this codebase:
 
-- **`frontend/README.md` references a `backend/` folder** that does not exist in the repository root. The Python backend logic is distributed across `src/`, `app/`, `dashboard/`, `providers/`, `dividendi/`, `scripts/`, and the root-level Python scripts. Do not create a `backend/` directory unless you are intentionally restructuring the project.
+- **`frontend/README.md` references a `backend/` folder** that does not exist in the repository root. The Python backend logic is distributed across `api/`, `src/`, `app/`, `providers/`, `dividendi/`, `script/`, and the root-level Python scripts.
 
-- **No committed backend API server at `localhost:8000`.** The Angular dev proxy forwards `/api` to `localhost:8000`, but the repository does not include that server. For frontend-only work, keep `useMocks = true` in `frontend/src/app/services/api.service.ts`.
+- **FastAPI backend runs on `localhost:8001`** (port 8000 is used by `trading-brain`). The Angular dev proxy still points to `localhost:8000`; update `frontend/proxy.conf.json` when connecting to the real backend.
 
 - **`src/data_providers/` exists but is not the active provider package.** It currently contains only a `.env` file. The pluggable provider implementation lives in `providers/` (`base_provider.py`, `fmp_provider.py`, `yahoo_provider.py`, `provider_manager.py`).
 

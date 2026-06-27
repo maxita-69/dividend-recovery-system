@@ -18,7 +18,7 @@ if not exist venv (
 
 :: 2. Libera porte
 echo [2/4] Verifica porte...
-for %%p in (8501 8502 4200) do (
+for %%p in (8501 4200) do (
     for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":%%p" ^| findstr "LISTENING"') do (
         echo         Porta %%p occupata, PID %%a. Libero...
         taskkill /F /PID %%a >nul 2>&1
@@ -30,10 +30,6 @@ ping -n 2 127.0.0.1 >nul
 echo [3/4] Avvio servizi...
 echo         Streamlit Dashboard -^> http://localhost:8501
 powershell -Command "Start-Process -FilePath 'venv\Scripts\streamlit.exe' -ArgumentList 'run','app/Home.py','--server.port','8501','--browser.gatherUsageStats','false' -WindowStyle Hidden -PassThru | Select-Object -ExpandProperty Id | Out-File .pid_streamlit1"
-ping -n 4 127.0.0.1 >nul
-
-echo         Dividend Calendar   -^> http://localhost:8502
-powershell -Command "Start-Process -FilePath 'venv\Scripts\streamlit.exe' -ArgumentList 'run','dashboard/app.py','--server.port','8502','--browser.gatherUsageStats','false' -WindowStyle Hidden -PassThru | Select-Object -ExpandProperty Id | Out-File .pid_streamlit2"
 ping -n 4 127.0.0.1 >nul
 
 echo         Angular Frontend    -^> http://localhost:4200
@@ -55,7 +51,7 @@ goto :verify
 :verify
 echo [4/4] Verifica avvio...
 set OK=1
-for %%p in (8501 8502 4200) do (
+for %%p in (8501 4200) do (
     netstat -ano | findstr ":%%p" | findstr "LISTENING" >nul
     if errorlevel 1 (
         echo         Porta %%p -^> NON ATTIVA
@@ -70,12 +66,11 @@ if !OK! == 1 (
     echo ============================================
     echo TUTTI I SERVIZI ATTIVI
     echo - http://localhost:8501  Dashboard
-    echo - http://localhost:8502  Calendar
     echo - http://localhost:4200  Angular
     echo ============================================
 ) else (
     echo ATTENZIONE: alcuni servizi non sono attivi.
-    echo Controlla i log: streamlit1.log, streamlit2.log, angular.log
+    echo Controlla i log: streamlit1.log, angular.log
 )
 
 echo.

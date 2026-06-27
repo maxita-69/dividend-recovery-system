@@ -8,7 +8,7 @@ PROJECT_DIR = Path(__file__).parent.parent
 os.chdir(PROJECT_DIR)
 
 PID_FILE = PROJECT_DIR / ".service_pids.json"
-PORTS = [8501, 8502, 4200]
+PORTS = [8501, 4200]
 
 
 def kill_pid(pid):

@@ -238,8 +238,8 @@ The merge process only affected the `frontend/` directory. All backend code, dat
 
 ### What Was Preserved
 
-- Backend Python code (`backend/`, `src/`, `app/`)
-- Streamlit dashboards (`dashboard/`, `app/Home.py`, `app/pages/`)
+- Backend Python code (`api/`, `src/`, `app/`)
+- Streamlit dashboard (`app/Home.py`, `app/pages/`)
 - Database layer (`src/database/`)
 - Documentation (`DOCUMENTAZIONE/`)
 - Configuration files (`.env`, `.gitignore`, etc.)
@@ -292,10 +292,9 @@ dividend-recovery-system/
 │   ├── package.json                   # Merged dependencies
 │   ├── proxy.conf.json                # Dev proxy to localhost:8000
 │   └── tailwind.config.js             # Tailwind CSS configuration
-├── backend/                           # Python backend (unchanged)
-├── src/                               # Python source modules (unchanged)
-├── app/                               # Streamlit app (unchanged)
-├── dashboard/                         # Streamlit dashboard (unchanged)
+├── api/                               # FastAPI backend
+├── src/                               # Python source modules
+├── app/                               # Streamlit app
 ├── DOCUMENTAZIONE/                    # Project docs (unchanged)
 └── README.md                          # This file
 ```
