@@ -1,4 +1,4 @@
-# 📍 STATO PROGETTO — 2026-06-27 16:30
+# 📍 STATO PROGETTO — 2026-06-27 16:51
 
 > Generato automaticamente da `genera_stato.sh`.
 > Le sezioni sotto sono LETTE DAL SISTEMA REALE: non modificarle a mano.
@@ -17,20 +17,22 @@
 **Ultima cosa fatta:** API /health + /api/v1/stocks verificata (dati reali SQLite, porta 8001), committata e pushata (8024274)
 **Prossimo passo:** decidere se l'API serve davvero — esiste un Angular che la consuma? Se no, fermarsi qui e non costruire altri endpoint
 **Domande aperte:** Angular esiste? ; import core stile vecchio (database.database) = debito noto, non bloccante
+# **Ultima cosa fatta:** rimossa dashboard/ morta + 3 downloader duplicati (413d476), API ancora verde dopo pulizia
+# **Prossimo passo:** decidere se l'Angular in frontend/ è vivo → se sì espandere API (recovery), se no passare allo screener dividendi yfinance
 
 ## 🌿 Git
 ```
 Branch attivo: main
 
 Ultimi commit:
+413d476 chore: rimossa dashboard Streamlit morta e downloader duplicati
+fbd1509 stato: fetta API verificata e pushata
 2f677e2 chore: ignora verifica_api.sh
 8024274 feat: scaffolding FastAPI fetta verticale - health + stocks su DB SQLite reale porta 8001
 e9bf647 stato: piano API sospeso, prima Fase B
 ce9113b Aggiunto sistema di stato/handoff automatico
 06836d3 docs: aggiunto CONTINUITA.md per sessioni future
 3f18727 fix: rimosso import rotto .database da src/utils, corretto pattern_analysis
-68836ce docs: aggiunto STATO_CODICE.md con analisi del 20260627
-6d4b3ea security: rimossa key EODHD leakata, pulizia repo, aggiornato .gitignore
 
 Modifiche NON committate:
  M INTENTO.md
@@ -65,8 +67,6 @@ n8n        Up 4 days   0.0.0.0:5678->5678/tcp, [::]:5678->5678/tcp
 ./api/services
 ./app
 ./app/pages
-./dashboard
-./dashboard/pages
 ./data
 ./dividendi
 ./frontend
@@ -85,13 +85,13 @@ n8n        Up 4 days   0.0.0.0:5678->5678/tcp, [::]:5678->5678/tcp
 
 ## 🐍 File Python piu' grossi
 ```
+   278 ./tests/test_recovery_analysis.py
+   283 ./src/utils/recovery_analysis.py
+   293 ./test_finnhub.py
    299 ./src/database/download_stock_data_hybrid.py
    309 ./config.py
    341 ./tests/test_pattern_analysis.py
    359 ./src/database/download_data_ib.py
-   362 ./src/database/download_stock_data_fmp.py
-   409 ./src/database/download_stock_data_v2.py
-   430 ./dashboard/pages/1_📅_Dividend_Calendar.py
    524 ./src/utils/pattern_analysis.py
    540 ./app/pages/1_Single_Stock.py
    601 ./app/pages/7_Database_Dashboard.py
@@ -99,5 +99,5 @@ n8n        Up 4 days   0.0.0.0:5678->5678/tcp, [::]:5678->5678/tcp
    652 ./app/pages/2_Recovery_Analysis.py
    780 ./app/pages/4_Pattern_Analysis.py
    849 ./app/pages/5_Master_Dashboard.py
- 14484 total
+ 12881 total
 ```
