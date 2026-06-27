@@ -1,4 +1,4 @@
-# 📍 STATO PROGETTO — 2026-06-27 16:02
+# 📍 STATO PROGETTO — 2026-06-27 16:10
 
 > Generato automaticamente da `genera_stato.sh`.
 > Le sezioni sotto sono LETTE DAL SISTEMA REALE: non modificarle a mano.
@@ -11,12 +11,15 @@
 **Prossimo passo:** analizzare il repo trading con Claude Code in SOLA LETTURA (vedi §15 del manuale)
 **Domande aperte:** FMP API key forse leakata (da verificare); auth FastAPI ancora mancante
 **Assistente ultima sessione:** Claude (chat)
+**Prossimo passo:** Fase B in sola lettura — quale dashboard è viva (app/ vs dashboard/), quale DB reale, core src/ riusabile?
+**Domande aperte:** piano API FastAPI di Kimi pronto ma SOSPESO fino a fine Fase B; alla ripresa correggere porta (≠8000, occupata da trading-brain), confermare dashboard e DB
 
 ## 🌿 Git
 ```
 Branch attivo: main
 
 Ultimi commit:
+ce9113b Aggiunto sistema di stato/handoff automatico
 06836d3 docs: aggiunto CONTINUITA.md per sessioni future
 3f18727 fix: rimosso import rotto .database da src/utils, corretto pattern_analysis
 68836ce docs: aggiunto STATO_CODICE.md con analisi del 20260627
@@ -24,10 +27,10 @@ Ultimi commit:
 3983e61 Aggiornamento del progetto al 27 Giugno
 a5ff231 docs: flatten to root DOCUMENTAZIONE.md
 77d345e docs: unifica 14 file in DOCUMENTAZIONE.md unico
-f8d69bb Aggiunto stato attuale sistema (14/06/2026)
 
 Modifiche NON committate:
-(nessuna — working tree pulito)
+ M INTENTO.md
+ M STATO.md
 ```
 
 ## ⚙️ Servizi systemd
