@@ -61,3 +61,4 @@ frontend/.angular/
 # Runtime PID files
 .pid_streamlit*
 .service_pids.json
+*.exe
